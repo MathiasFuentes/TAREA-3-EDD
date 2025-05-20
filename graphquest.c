@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 #include "list.h"
 #include "extra.h"
@@ -9,6 +10,7 @@
 #define MAXDESC 1000
 #define MAXITEMNAME 256
 #define MAXDIR 4
+#define MAXOPTION 256
 
 /*
     Estado Actual
@@ -45,23 +47,20 @@ typedef struct{
 } Graph;
 
 /*
- * Carga canciones desde un archivo CSV
- */
+    Función leer_escenarios() HAY QUE COMENTAR AQUI
+*/
+
 void leer_escenarios() {
-  // Intenta abrir el archivo CSV que contiene datos de películas
   FILE *archivo = fopen("graphquest.csv", "r");
   if (archivo == NULL) {
     perror(
-        "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
+        "Error al abrir el archivo");
     return;
   }
 
   char **campos;
-  // Leer y parsear una línea del archivo CSV. La función devuelve un array de
-  // strings, donde cada elemento representa un campo de la línea CSV procesada.
-  campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
+  campos = leer_linea_csv(archivo, ','); 
 
-  // Lee cada línea del archivo CSV hasta el final
   while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
     printf("ID: %d\n", atoi(campos[0]));
     printf("Nombre: %s\n", campos[1]);
@@ -100,8 +99,7 @@ void leer_escenarios() {
     free(items);
     
   }
-  fclose(archivo); // Cierra el archivo después de leer todas las líneas
-
+  fclose(archivo);
 }
 
 
@@ -128,6 +126,7 @@ void leer_escenarios() {
 */
 
 void showPrincipalOptions(){
+    limpiarPantalla();
     puts("---------- GraphQuest ----------\n");
     puts("-------- Menú Principal --------");
     puts("(1)   Cargar Laberinto desde CSV");
@@ -136,6 +135,7 @@ void showPrincipalOptions(){
 }
 
 void showGameOptions(){
+    limpiarPantalla();
     puts("---------- GraphQuest ----------\n");
     puts("------ Opciones Disponibles ------");
     puts("(1)   Recoger Ítem(s)");
@@ -143,4 +143,17 @@ void showGameOptions(){
     puts("(3)   Avanzar en una dirección");
     puts("(4)   Reiniciar partida");
     puts("(5)   Salir del juego");
+}
+
+int main(){
+    Graph* maze;
+    bool Flag = true;
+    char option;
+    do {
+        char reading[MAXOPTION];
+        showPrincipalOptions();
+        option = readOption(reading);
+
+    } while (option != '3');
+
 }
