@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
 
 #include "list.h"
 #include "extra.h"
@@ -16,7 +15,7 @@
 
     - Descripción del escenario actual.
     - Lista de ítems disponibles en este escenario (con nombre, peso y valor).
-    - Tiempo restante (puedes inicializarlo en 10 o el tiempo que estimes conveniente).
+    - ** Tiempo restante (puedes inicializarlo en 10 o el tiempo que estimes conveniente).
     - Inventario del jugador (ítems recogidos, peso total y puntaje acumulado).
     - Acciones posibles desde este escenario: direcciones disponibles (arriba, abajo, izquierda, derecha).
 */
@@ -29,11 +28,82 @@ typedef struct{
 
 typedef struct State{
     char    description[MAXDESC];
+    char    possibleDirections[MAXDIR];
     Item*   availableItems;
     List*   playerInventory;
-    time_t  tiempoRestante;
-    char    possibleDirections[MAXDIR];
+    int     tiempoRestante;
 } State;
+
+typedef struct{
+    State   state;
+    List*   adjacents;
+} Node;
+
+typedef struct{
+    size_t numberOfNodes;
+    Node* nodes;
+} Graph;
+
+/*
+ * Carga canciones desde un archivo CSV
+ */
+void leer_escenarios() {
+  // Intenta abrir el archivo CSV que contiene datos de películas
+  FILE *archivo = fopen("graphquest.csv", "r");
+  if (archivo == NULL) {
+    perror(
+        "Error al abrir el archivo"); // Informa si el archivo no puede abrirse
+    return;
+  }
+
+  char **campos;
+  // Leer y parsear una línea del archivo CSV. La función devuelve un array de
+  // strings, donde cada elemento representa un campo de la línea CSV procesada.
+  campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
+
+  // Lee cada línea del archivo CSV hasta el final
+  while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+    printf("ID: %d\n", atoi(campos[0]));
+    printf("Nombre: %s\n", campos[1]);
+    printf("Descripción: %s\n", campos[2]);
+
+    List* items = split_string(campos[3], ";");
+
+    printf("Items: \n");
+    for(char *item = list_first(items); item != NULL; 
+          item = list_next(items)){
+
+        List* values = split_string(item, ",");
+        char* item_name = list_first(values);
+        int item_value = atoi(list_next(values));
+        int item_weight = atoi(list_next(values));
+        printf("  - %s (%d pts, %d kg)\n", item_name, item_value, item_weight);
+        list_clean(values);
+        free(values);
+    }
+
+    int arriba = atoi(campos[4]);
+    int abajo = atoi(campos[5]);
+    int izquierda = atoi(campos[6]);
+    int derecha = atoi(campos[7]);
+
+    if (arriba != -1) printf("Arriba: %d\n", arriba);
+    if (abajo != -1) printf("Abajo: %d\n", abajo);
+    if (izquierda != -1) printf("Izquierda: %d\n", izquierda);
+    if (derecha != -1) printf("Derecha: %d\n", derecha);
+
+    
+    int is_final = atoi(campos[8]);
+    if (is_final) printf("Es final\n");
+
+    list_clean(items);
+    free(items);
+    
+  }
+  fclose(archivo); // Cierra el archivo después de leer todas las líneas
+
+}
+
 
 /*
 ### **Opciones del Jugador**
@@ -57,13 +127,20 @@ typedef struct State{
     - Finaliza la partida y cierra la aplicación.
 */
 
-void showOptions(){
+void showPrincipalOptions(){
+    puts("---------- GraphQuest ----------\n");
+    puts("-------- Menú Principal --------");
+    puts("(1)   Cargar Laberinto desde CSV");
+    puts("(2)   Iniciar Partida");
+    puts("(3)   Salir");
+}
+
+void showGameOptions(){
     puts("---------- GraphQuest ----------\n");
     puts("------ Opciones Disponibles ------");
     puts("(1)   Recoger Ítem(s)");
     puts("(2)   Descartar Ítem(s)");
     puts("(3)   Avanzar en una dirección");
     puts("(4)   Reiniciar partida");
-    puts("(5)   Modo Multijugador");
-    puts("(6)   Salir del juego");
+    puts("(5)   Salir del juego");
 }
