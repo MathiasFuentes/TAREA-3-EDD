@@ -40,9 +40,10 @@ void showPrincipalOptions(){
     limpiarPantalla();
     puts("---------- GraphQuest ----------\n");
     puts("-------- Menú Principal --------");
-    puts("(1)   Cargar Laberinto desde CSV");
-    puts("(2)   Iniciar Partida");
-    puts("(3)   Salir");
+    puts("(1)   Cargar Laberinto desde CSV.");
+    puts("(2)   Mostrar Escenarios Cargados.");
+    puts("(3)   Iniciar Partida.");
+    puts("(4)   Salir");
 }
 
 void showGameOptions(){
@@ -92,17 +93,18 @@ int main(){
     do {
         showPrincipalOptions();
         char reading[MAXOPTION];
-        option = readOption(reading, 3);
+        option = readOption(reading, 4);
         switch(option) {
             case '1':
                 leer_escenarios();
-                mostrar_grafo();
-                puts("LEER ESCENARIOS SUCCESFOLEY");
                 break;
             case '2':
-                puts("OPCION INICIAR PARTIDA ");
+                mostrar_grafo();
                 break;
             case '3':
+                puts("OPCION INICIAR PARTIDA ");
+                break;
+            case '4':
                 puts("OPCION SALIR");
                 break;
             default:
@@ -110,6 +112,6 @@ int main(){
                 break;
         }
         presioneTeclaParaContinuar();
-    } while (option != '3');
+    } while (option != '4');
 
 }

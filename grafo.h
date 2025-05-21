@@ -8,7 +8,7 @@
 #define MAXITEMNAME 256
 #define MAXDIR 4
 #define MAXNODES 1000
-
+#define MAXNAME 256
 /*
     Definiciones de structs a usar en grafo explícito.
 */
@@ -25,6 +25,7 @@ typedef struct {
 
 // Definición del estado
 typedef struct State {
+    char    name[MAXNAME];
     char    description[MAXDESC];          // Descripción del escenario actual 
     List*   availableItems;
     List*   playerInventory;

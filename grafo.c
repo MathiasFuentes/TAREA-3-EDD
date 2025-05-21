@@ -15,6 +15,7 @@ void leer_escenarios() {
         return;
     }
 
+    size_t contadorEscenarios = 0;
     char **campos;
     int capacidad = 100; // Asumimos un máximo inicial
     graph.nodes = malloc(sizeof(Node) * capacidad);
@@ -32,8 +33,10 @@ void leer_escenarios() {
         int id = atoi(campos[0]);
         Node *node = &graph.nodes[id - 1]; // ID empieza en 1
         graph.numberOfNodes++;
+        contadorEscenarios++;
 
         // Asignar nombre y descripción
+        strncpy(node->state.name, campos[1], MAXNAME);
         strncpy(node->state.description, campos[2], MAXDESC);
 
         // Crear lista de ítems
@@ -89,12 +92,14 @@ void leer_escenarios() {
     }
 
     fclose(archivo);
+    printf("\nSe cargaron %zu escenarios!!\n", contadorEscenarios);
 }
 
 void mostrar_grafo() {
     for (int i = 0; i < graph.numberOfNodes; i++) {
         Node* node = &graph.nodes[i];
         printf("Nodo ID: %d\n", i + 1);
+        printf("Nombre: %s\n", node->state.name);
         printf("  Descripción: %s\n", node->state.description);
 
         printf("  Ítems disponibles:\n");
