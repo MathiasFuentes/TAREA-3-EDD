@@ -96,6 +96,7 @@ int main(){
         switch(option) {
             case '1':
                 leer_escenarios();
+                mostrar_grafo();
                 puts("LEER ESCENARIOS SUCCESFOLEY");
                 break;
             case '2':
