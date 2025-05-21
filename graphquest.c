@@ -17,7 +17,7 @@
 
     - Descripción del escenario actual.
     - Lista de ítems disponibles en este escenario (con nombre, peso y valor).
-    - ** Tiempo restante (puedes inicializarlo en 10 o el tiempo que estimes conveniente).
+    - Tiempo restante (Inicializado en 10).
     - Inventario del jugador (ítems recogidos, peso total y puntaje acumulado).
     - Acciones posibles desde este escenario: direcciones disponibles (arriba, abajo, izquierda, derecha).
 */
@@ -145,15 +145,58 @@ void showGameOptions(){
     puts("(5)   Salir del juego");
 }
 
+/*
+    Función readOption() HAY QUE COMENTAR AQUÍ
+*/
+
+char readOption(char reading[MAXOPTION], int maxOpciones) {
+    while (1) {
+        printf("Ingrese una opción (1-%d): ", maxOpciones);
+        fgets(reading, MAXOPTION, stdin);
+
+        // Eliminar salto de línea si está presente
+        size_t len = strlen(reading);
+        if (len > 0 && reading[len - 1] == '\n') {
+            reading[len - 1] = '\0';
+            len--;
+        }
+
+        // Validar que la entrada tenga exactamente un carácter numérico
+        if (len == 1 && isdigit(reading[0])) {
+            int opcionNumerica = reading[0] - '0';
+            if (opcionNumerica >= 1 && opcionNumerica <= maxOpciones) {
+                return reading[0]; // Retorna el carácter ('1', '2', etc.)
+            }
+        }
+
+        // printf("Opción inválida. Intente nuevamente.\n");
+        return '0';
+    }
+}
+
 int main(){
     Graph* maze;
     bool Flag = true;
     char option;
     do {
-        char reading[MAXOPTION];
         showPrincipalOptions();
-        option = readOption(reading);
-
+        char reading[MAXOPTION];
+        option = readOption(reading, 3);
+        switch(option) {
+            case '1':
+                leer_escenarios();
+                break;
+            case '2':
+                puts("OPCION INICIAR PARTIDA ");
+                break;
+            case '3':
+                puts("OPCION SALIR");
+                break;
+            default:
+                puts("\nOpción inválida, intente nuevamente");
+                break;
+        }
+        presioneTeclaParaContinuar();
     } while (option != '3');
 
 }
