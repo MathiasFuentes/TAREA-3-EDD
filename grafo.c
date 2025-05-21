@@ -1,116 +1,92 @@
 #include "grafo.h"
 #include "extra.h"
+#include "list.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
-Graph* leer_escenarios() {
-    FILE* archivo = fopen("graphquest.csv", "r");
+Graph graph;
+
+void leer_escenarios() {
+    FILE *archivo = fopen("graphquest.csv", "r");
     if (archivo == NULL) {
         perror("Error al abrir el archivo");
-        return NULL;
+        return;
     }
 
-    Node* nodos = (Node*) calloc(MAXNODES, sizeof(Node));
-    int totalNodos = 0;
+    char **campos;
+    int capacidad = 100; // Asumimos un máximo inicial
+    graph.nodes = malloc(sizeof(Node) * capacidad);
+    graph.numberOfNodes = 0;
 
-    char** campos;
+    campos = leer_linea_csv(archivo, ','); // Leer encabezados
 
-    // Leer encabezado
-    campos = leer_linea_csv(archivo, ',');
-    if (campos) {
-        for (int i = 0; campos[i] != NULL; i++) free(campos[i]);
-        free(campos);
-    }
-
+    // Primero: leer y crear nodos
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
-        if (!campos[0] || !campos[2] || !campos[3] || !campos[4] || !campos[5] || !campos[6] || !campos[7] || !campos[8]) {
-            for (int i = 0; campos[i] != NULL; i++) free(campos[i]);
-            free(campos);
-            continue;
+        if (graph.numberOfNodes >= capacidad) {
+            capacidad *= 2;
+            graph.nodes = realloc(graph.nodes, sizeof(Node) * capacidad);
         }
 
         int id = atoi(campos[0]);
-        if (id < 0 || id >= MAXNODES) {
-            printf("ID inválido: %d\n", id);
-            for (int i = 0; campos[i] != NULL; i++) free(campos[i]);
-            free(campos);
-            continue;
+        Node *node = &graph.nodes[id - 1]; // ID empieza en 1
+        graph.numberOfNodes++;
+
+        // Asignar nombre y descripción
+        strncpy(node->state.description, campos[2], MAXDESC);
+
+        // Crear lista de ítems
+        node->state.availableItems = list_create();
+        node->state.playerInventory = list_create(); // vacía por defecto
+        node->state.tiempoRestante = 0;
+
+        // Parsear items
+        List* items = split_string(campos[3], ";");
+        for (char *item = list_first(items); item != NULL; item = list_next(items)) {
+            List *values = split_string(item, ",");
+            if (values == NULL || list_size(values) < 3) continue;
+
+            Item *newItem = malloc(sizeof(Item));
+            strncpy(newItem->name, list_first(values), MAXITEMNAME);
+            newItem->value = atoi(list_next(values));
+            newItem->weight = atoi(list_next(values));
+
+            list_pushBack(node->state.availableItems, newItem);
+
+            list_clean(values);
+            free(values);
         }
+        list_clean(items);
+        free(items);
 
-        Node* nodo = &nodos[id];
-        if (id >= totalNodos) totalNodos = id + 1;
+        // Marcar si es final
+        char *es_final = campos[8];
+        for (int i = 0; es_final[i]; i++) es_final[i] = tolower(es_final[i]);
+        node->state.esFinal = (strncmp(es_final, "sí", 2) == 0 || strncmp(es_final, "si", 2) == 0);
 
-        strncpy(nodo->state.description, campos[2], MAXDESC - 1);
-        nodo->state.description[MAXDESC - 1] = '\0';
+        // Inicializar adyacencias
+        node->adjacents = calloc(4, sizeof(Node*));
+    }
 
-        nodo->state.availableItems = list_create();
+    // Segundo: abrir de nuevo el archivo para setear adyacencias por ID
+    rewind(archivo);
+    leer_linea_csv(archivo, ','); // saltar encabezado otra vez
 
-        List* items_raw = split_string(campos[3], ";");
-        for (char* raw_item = list_first(items_raw); raw_item != NULL; raw_item = list_next(items_raw)) {
-            List* datos = split_string(raw_item, ",");
+    int idx = 0;
+    while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+        Node *node = &graph.nodes[idx++];
 
-            if (!datos || list_size(datos) < 3) {
-                if (datos) {
-                    list_clean(datos);
-                    free(datos);
-                }
-                continue;
-            }
+        int arriba    = atoi(campos[4]);
+        int abajo     = atoi(campos[5]);
+        int izquierda = atoi(campos[6]);
+        int derecha   = atoi(campos[7]);
 
-            char* name = list_first(datos);
-            char* value_str = list_next(datos);
-            char* weight_str = list_next(datos);
-
-            if (!name || !value_str || !weight_str) {
-                list_clean(datos);
-                free(datos);
-                continue;
-            }
-
-            Item* item = malloc(sizeof(Item));
-            strncpy(item->name, name, MAXITEMNAME - 1);
-            item->name[MAXITEMNAME - 1] = '\0';
-            item->value = atoi(value_str);
-            item->weight = atoi(weight_str);
-
-            list_pushBack(nodo->state.availableItems, item);
-
-            list_clean(datos);
-            free(datos);
-        }
-        list_clean(items_raw);
-        free(items_raw);
-
-        for (int i = 0; i < MAXDIR; i++) {
-            nodo->state.possibleDirections[i] = atoi(campos[4 + i]);
-        }
-
-        nodo->state.tiempoRestante = 10;
-        nodo->state.playerInventory = list_create();
-        nodo->state.esFinal = atoi(campos[8]);
-
-        nodo->adjacents = calloc(MAXDIR, sizeof(Node*));
-
-        for (int i = 0; campos[i] != NULL; i++) free(campos[i]);
-        free(campos);
+        if (arriba != -1)    node->adjacents[0] = &graph.nodes[arriba - 1];
+        if (abajo != -1)     node->adjacents[1] = &graph.nodes[abajo - 1];
+        if (izquierda != -1) node->adjacents[2] = &graph.nodes[izquierda - 1];
+        if (derecha != -1)   node->adjacents[3] = &graph.nodes[derecha - 1];
     }
 
     fclose(archivo);
-
-    for (int i = 0; i < totalNodos; i++) {
-        for (int dir = 0; dir < MAXDIR; dir++) {
-            int vecinoID = nodos[i].state.possibleDirections[dir];
-            if (vecinoID != -1 && vecinoID < totalNodos) {
-                nodos[i].adjacents[dir] = &nodos[vecinoID];
-            }
-        }
-    }
-
-    Graph* grafo = malloc(sizeof(Graph));
-    grafo->numberOfNodes = totalNodos;
-    grafo->nodes = nodos;
-
-    printf("Laberinto cargado: %d nodos\n", totalNodos);
-    return grafo;
 }

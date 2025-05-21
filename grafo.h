@@ -9,21 +9,27 @@
 #define MAXDIR 4
 #define MAXNODES 1000
 
+/*
+    Definiciones de structs a usar en grafo explícito.
+*/
+
+// Predefinición Nodo
 typedef struct Node Node;
 
+// Definición Item
 typedef struct {
-    char name[MAXITEMNAME];
-    int weight;
-    int value;
+    char name[MAXITEMNAME]; // Nombre del item
+    int weight;             // Peso del item en kg
+    int value;              // Valor del item
 } Item;
 
+// Definición del estado
 typedef struct State {
-    char description[MAXDESC];
-    char possibleDirections[MAXDIR];
-    List* availableItems;
-    List* playerInventory;
-    int tiempoRestante;
-    bool esFinal;
+    char    description[MAXDESC];          // Descripción del escenario actual 
+    List*   availableItems;
+    List*   playerInventory;
+    int     tiempoRestante;
+    bool    esFinal;
 } State;
 
 struct Node {
@@ -37,8 +43,9 @@ typedef struct {
 } Graph;
 
 // Carga el grafo desde un CSV
-Graph* leer_escenarios();
+void leer_escenarios();
 
+extern Graph grafo;
 // (más adelante puedes agregar otras funciones como liberar_grafo, mostrar_nodo, etc.)
 
 #endif
