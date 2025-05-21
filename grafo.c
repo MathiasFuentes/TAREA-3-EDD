@@ -90,3 +90,30 @@ void leer_escenarios() {
 
     fclose(archivo);
 }
+
+void mostrar_grafo() {
+    for (int i = 0; i < graph.numberOfNodes; i++) {
+        Node* node = &graph.nodes[i];
+        printf("Nodo ID: %d\n", i + 1);
+        printf("  Descripción: %s\n", node->state.description);
+
+        printf("  Ítems disponibles:\n");
+        for (Item* item = list_first(node->state.availableItems); item != NULL; item = list_next(node->state.availableItems)) {
+            printf("    - %s (%d pts, %d kg)\n", item->name, item->value, item->weight);
+        }
+
+        printf("  Adyacencias:\n");
+        const char* direcciones[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
+        for (int j = 0; j < 4; j++) {
+            if (node->adjacents[j] != NULL) {
+                int id_adyacente = (int)(node->adjacents[j] - graph.nodes) + 1; // calcular ID relativo
+                printf("    %s → Nodo %d\n", direcciones[j], id_adyacente);
+            } else {
+                printf("    %s → Ninguno\n", direcciones[j]);
+            }
+        }
+
+        printf("  ¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
+        printf("------------------------------------\n");
+    }
+}
