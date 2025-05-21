@@ -11,6 +11,7 @@
 #define MAXITEMNAME 256
 #define MAXDIR 4
 #define MAXOPTION 256
+#define MAXNODES 1000
 
 /*
     Estado Actual
@@ -22,6 +23,8 @@
     - Acciones posibles desde este escenario: direcciones disponibles (arriba, abajo, izquierda, derecha).
 */
 
+typedef struct Node Node;
+
 typedef struct{
     char    name[MAXITEMNAME];
     int     weight;
@@ -31,16 +34,16 @@ typedef struct{
 typedef struct State{
     char    description[MAXDESC];
     char    possibleDirections[MAXDIR];
-    Item*   availableItems;
+    List*   availableItems;
     List*   playerInventory;
     int     tiempoRestante;
     bool    esFinal;
 } State;
 
-typedef struct{
+struct Node{
     State   state;
-    List*   adjacents[MAXDIR];
-} Node;
+    Node**   adjacents;
+};
 
 typedef struct{
     size_t numberOfNodes;
@@ -51,109 +54,65 @@ typedef struct{
     Función leer_escenarios() HAY QUE COMENTAR AQUI
 */
 
-// Variable global o pasada por referencia para guardar IDs de conexiones temporalmente
-int** conexionesTemp; // conexionesTemp[i][0..3] = IDs vecinos de nodo i
+void leer_escenarios() {
+  // Intenta abrir el archivo CSV que contiene datos de películas
+  FILE *archivo = fopen("graphquest.csv", "r");
+  if (archivo == NULL) {
+    perror("Error al abrir el archivo"); // Informa si el archivo no puede abrirse
+    return;
+  }
 
-Graph* leer_escenarios() {
-    FILE *archivo = fopen("graphquest.csv", "r");
-    if (archivo == NULL) {
-        perror("Error al abrir el archivo");
-        return NULL;
+  char **campos;
+  // Leer y parsear una línea del archivo CSV. La función devuelve un array de
+  // strings, donde cada elemento representa un campo de la línea CSV procesada.
+  campos = leer_linea_csv(archivo, ','); // Lee los encabezados del CSV
+
+
+  // Lee cada línea del archivo CSV hasta el final
+  while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
+    printf("ID: %d\n", atoi(campos[0]));
+    printf("Nombre: %s\n", campos[1]);
+    printf("Descripción: %s\n", campos[2]);
+
+    List* items = split_string(campos[3], ";");
+
+    printf("Items: \n");
+    for(char *item = list_first(items); item != NULL; 
+          item = list_next(items)){
+
+        List* values = split_string(item, ",");
+        char* item_name = list_first(values);
+        int item_value = atoi(list_next(values));
+        int item_weight = atoi(list_next(values));
+        printf("  - %s (%d pts, %d kg)\n", item_name, item_value, item_weight);
+        list_clean(values);
+        free(values);
     }
 
-    // Leer y descartar encabezado
-    char buffer[1024];
-    fgets(buffer, sizeof(buffer), archivo);
+    int arriba = atoi(campos[4]);
+    int abajo = atoi(campos[5]);
+    int izquierda = atoi(campos[6]);
+    int derecha = atoi(campos[7]);
 
-    // Primero contar líneas para saber cuántos nodos hay
-    size_t lineCount = 0;
-    long pos = ftell(archivo);
-    while (fgets(buffer, sizeof(buffer), archivo) != NULL) {
-        lineCount++;
-    }
-    fseek(archivo, pos, SEEK_SET);
+    if (arriba != -1) printf("Arriba: %d\n", arriba);
+    if (abajo != -1) printf("Abajo: %d\n", abajo);
+    if (izquierda != -1) printf("Izquierda: %d\n", izquierda);
+    if (derecha != -1) printf("Derecha: %d\n", derecha);
 
-    // Crear grafo y nodos
-    Graph* grafo = malloc(sizeof(Graph));
-    grafo->numberOfNodes = lineCount;
-    grafo->nodes = calloc(lineCount, sizeof(Node));
+    
+    int is_final = atoi(campos[8]);
+    if (is_final) printf("Es final\n");
 
-    // Reservar espacio para IDs de conexiones temporales
-    conexionesTemp = malloc(lineCount * sizeof(int*));
-    for (size_t i = 0; i < lineCount; i++) {
-        conexionesTemp[i] = malloc(MAXDIR * sizeof(int));
-        for (int d = 0; d < MAXDIR; d++) {
-            conexionesTemp[i][d] = -1; // inicializar como no conexión
-        }
-    }
+    list_clean(items);
+    free(items);
+    
+  }
+  fclose(archivo); // Cierra el archivo después de leer todas las líneas
 
-    size_t nodoIndex = 0;
-    while ((fgets(buffer, sizeof(buffer), archivo)) != NULL) {
-        // Parsear CSV línea (usa tu función split o sscanf según prefieras)
-        // Aquí una forma simple con sscanf solo para ejemplo:
-        // Recuerda que Items y Descripción con comas y espacios necesitan un parser robusto
-
-        char idStr[10], nombre[MAXITEMNAME], descripcion[MAXDESC], itemsStr[256], arribaStr[10], abajoStr[10], izqStr[10], derStr[10], esFinalStr[10];
-        
-        // Ejemplo usando sscanf simplificado (ajustar según CSV real)
-        sscanf(buffer, "%[^,],%[^,],\"%[^\"]\",%[^,],%[^,],%[^,],%[^,],%[^,],%s", 
-            idStr, nombre, descripcion, itemsStr, arribaStr, abajoStr, izqStr, derStr, esFinalStr);
-
-        int id = atoi(idStr);
-
-        // Guardar datos básicos en el nodo
-        Node* nodo = &grafo->nodes[nodoIndex];
-
-        strcpy(nodo->state.description, descripcion);
-        // Podrías guardar nombre en state si quieres, o en otro lado
-
-        // Parsear Items (usa tu función split_string)
-        List* itemsList = split_string(itemsStr, ";");
-        // Aquí debes convertir la lista de strings a arreglo de Items (o List*)
-        // Simplifico dejando en NULL por ahora
-        nodo->state.availableItems = NULL;
-
-        // Guardar IDs de conexiones
-        conexionesTemp[nodoIndex][0] = atoi(arribaStr);
-        conexionesTemp[nodoIndex][1] = atoi(abajoStr);
-        conexionesTemp[nodoIndex][2] = atoi(izqStr);
-        conexionesTemp[nodoIndex][3] = atoi(derStr);
-
-        // Marcar si es final
-        nodo->state.esFinal = (strcmp(esFinalStr, "Sí") == 0 || strcmp(esFinalStr, "Si") == 0);
-
-        // Inicializar punteros de direcciones a NULL
-        for (int d = 0; d < MAXDIR; d++) {
-            nodo->adjacents[d] = NULL;
-        }
-
-        nodoIndex++;
-    }
-
-    fclose(archivo);
-
-    // Segundo paso: asignar punteros de conexiones
-    for (size_t i = 0; i < grafo->numberOfNodes; i++) {
-        for (int d = 0; d < MAXDIR; d++) {
-            int vecinoID = conexionesTemp[i][d];
-            if (vecinoID != -1) {
-                // El ID de nodo en el CSV es 1-based, pero el arreglo es 0-based
-                size_t idxVecino = vecinoID - 1;
-                if (idxVecino < grafo->numberOfNodes) {
-                    grafo->nodes[i].adjacents[d] = &grafo->nodes[idxVecino];
-                }
-            }
-        }
-    }
-
-    // Liberar conexiones temporales
-    for (size_t i = 0; i < grafo->numberOfNodes; i++) {
-        free(conexionesTemp[i]);
-    }
-    free(conexionesTemp);
-
-    return grafo;
 }
+
+
+
 
 
 
