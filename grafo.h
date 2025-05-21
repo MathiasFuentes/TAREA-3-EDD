@@ -45,6 +45,9 @@ typedef struct {
 // Carga el grafo desde un CSV
 void leer_escenarios();
 
+// Muestra el grafo global
+void mostrar_grafo();
+
 extern Graph grafo;
 // (más adelante puedes agregar otras funciones como liberar_grafo, mostrar_nodo, etc.)
 
