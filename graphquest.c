@@ -123,16 +123,15 @@ void move(Node** current) {
     puts("\nDirecciones disponibles:");
     for (int i = 0; i < 4; i++) {
         if (actual->adjacents[i] != NULL) {
-            printf("(%d) %s\n", i, directions[i]);
+            printf("(%d) %s\n", i+1, directions[i]);
         }
     }
 
-    printf("Ingrese una dirección (1-4): ");
-    char input[16];
-    fgets(input, sizeof(input), stdin);
-    int dir = atoi(input);
+    char reading[MAXOPTION];
+    char input = readOption(reading, 4);
+    int dir = input - '0';
 
-    if (dir >= 0 && dir < 4 && actual->adjacents[dir] != NULL) {
+    if (dir >= 1 && dir <= 4 && actual->adjacents[dir - 1] != NULL) {
         if (actual->state.playerInventory == NULL)
             actual->state.playerInventory = list_create();
 
@@ -145,7 +144,7 @@ void move(Node** current) {
         if (tiempoGastado == 0) tiempoGastado = 1;
 
         int tiempoAnterior = actual->state.remainingTime;
-        *current = actual->adjacents[dir];
+        *current = actual->adjacents[dir - 1];
 
         if ((*current)->state.availableItems == NULL)
             (*current)->state.availableItems = list_create();
