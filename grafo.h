@@ -29,7 +29,7 @@ typedef struct State {
     char    description[MAXDESC];          // Descripción del escenario actual 
     List*   availableItems;
     List*   playerInventory;
-    int     tiempoRestante;
+    int     remainingTime;
     bool    esFinal;
 } State;
 
