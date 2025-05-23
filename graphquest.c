@@ -7,11 +7,12 @@
 #include "list.h"
 #include "extra.h"
 #include "grafo.h"
+#include "game.h"
 
+#define MAXOPTION 256
 #define MAXDESC 1000
 #define MAXITEMNAME 256
 #define MAXDIR 4
-#define MAXOPTION 256
 #define MAXNODES 1000
 
 /*
@@ -21,7 +22,7 @@
     - El jugador puede seleccionar uno o más ítems del escenario para agregarlos a su inventario. Se descuenta 1 de tiempo.
 
 2. **Descartar Ítem(s)**
-    - El jugador puede eliminar ítems de su inventario para reducir peso y move más rápido. Se descuenta 1 de tiempo.
+    - El jugador puede eliminar ítems de su inventario para reducir peso y moverse más rápido. Se descuenta 1 de tiempo.
 
 3. **Avanzar en una Dirección**
     - El jugador elige una dirección válida.
@@ -47,6 +48,8 @@ void showPrincipalOptions(){
 }
 
 void showGameOptions(){
+    limpiarPantalla();
+    puts("---------- GraphQuest ----------\n");
     puts("------ Opciones Disponibles ------");
     puts("(1)   Recoger Ítem(s)");
     puts("(2)   Descartar Ítem(s)");
@@ -55,195 +58,174 @@ void showGameOptions(){
     puts("(5)   Salir del juego");
 }
 
-char readOption(char reading[MAXOPTION], int maxOptions) {
+char readOption(char reading[MAXOPTION], int maxOpciones) {
     while (1) {
-        printf("Ingrese una opción (1-%d): ", maxOptions);
-        fgets(reading, MAXOPTION, stdin);
+        printf("Ingrese una opción (1-%d): ", maxOpciones);
+        if (!fgets(reading, MAXOPTION, stdin)) {
+            clearerr(stdin);
+            continue;
+        }
 
-        // Eliminar salto de línea si está presente
         size_t len = strlen(reading);
         if (len > 0 && reading[len - 1] == '\n') {
             reading[len - 1] = '\0';
             len--;
         }
 
-        // Validar que la entrada tenga exactamente un carácter numérico
         if (len == 1 && isdigit(reading[0])) {
-            int numericalOption = reading[0] - '0';
-            if (numericalOption >= 1 && numericalOption <= maxOptions) {
-                return reading[0]; // Retorna el carácter ('1', '2', etc.)
+            int opcionNumerica = reading[0] - '0';
+            if (opcionNumerica >= 1 && opcionNumerica <= maxOpciones) {
+                return reading[0];
             }
         }
 
-        // printf("Opción inválida. Intente nuevamente.\n");
-        return '0';
+        puts("Opción inválida. Intente nuevamente.");
     }
 }
 
-/*
-    Función readOption() HAY QUE COMENTAR AQUÍ
-*/
-
-void show_actual_state(Node* current) {
-    
-    if (current == NULL) {
-        puts("Error: el nodo actual es NULL.");
-        return;
-    }
-
-    if (current->state.availableItems == NULL) {
-        puts("Advertencia: availableItems es NULL.");
-        current->state.availableItems = list_create(); // Solución de emergencia
-    }
-
-    if (current->state.playerInventory == NULL) {
-        puts("Advertencia: playerInventory es NULL.");
-        current->state.playerInventory = list_create(); // Solución de emergencia
-    }
-
-    printf("\nEscenario actual: '%s'\n'%s'\n\n",current->state.name, current->state.description);
-    printf("Tiempo restante: %d\n", current->state.remainingTime);
-
-    if (list_size(current->state.availableItems) == 0) {
-        puts("No hay ítems en este escenario.");
-    }
-    else {
-        printf("Ítems disponibles:\n");
-        for (Item* it = list_first(current->state.availableItems); it != NULL; it = list_next(current->state.availableItems)) {
-            printf("- %s (valor: %d, peso: %d)\n", it->name, it->value, it->weight);
-        }
-    }
-}
-
-// Move entre nodos del grafo
-void move(Node** current) {
-    Node* actual = *current;
-    const char* directions[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
-
-    puts("\nDirecciones disponibles:");
-    for (int i = 0; i < 4; i++) {
-        if (actual->adjacents[i] != NULL) {
-            printf("(%d) %s\n", i+1, directions[i]);
-        }
-    }
-
-    char reading[MAXOPTION];
-    char input = readOption(reading, 4);
-    int dir = input - '0';
-
-    if (dir >= 1 && dir <= 4 && actual->adjacents[dir - 1] != NULL) {
-        if (actual->state.playerInventory == NULL)
-            actual->state.playerInventory = list_create();
-
-        int pesoTotal = 0;
-        for (Item* it = list_first(actual->state.playerInventory); it != NULL; it = list_next(actual->state.playerInventory)) {
-            pesoTotal += it->weight;
-        }
-
-        int tiempoGastado = (pesoTotal + 1) / 10;
-        if (tiempoGastado == 0) tiempoGastado = 1;
-
-        int tiempoAnterior = actual->state.remainingTime;
-        *current = actual->adjacents[dir - 1];
-
-        if ((*current)->state.availableItems == NULL)
-            (*current)->state.availableItems = list_create();
-
-        if ((*current)->state.playerInventory == NULL)
-            (*current)->state.playerInventory = list_create();
-
-        (*current)->state.remainingTime = tiempoAnterior - tiempoGastado;
-
-        printf("\nTe has movido a un nuevo escenario.\n");
-        printf("Tiempo gastado: %d\n", tiempoGastado);
-        printf("Tiempo restante: %d\n", (*current)->state.remainingTime);
-    } else {
-        puts("Dirección inválida o no disponible.");
-    }
-}
-
-
-
-// Iniciar una partida del juego
-void start_game() {
+void mostrar_estado_actual(GameState* gs) {
+    Node* n = gs->currentNode;
     limpiarPantalla();
-    if (graph.numberOfNodes == 0) {
-        puts("==== ADVERTENCIA ====");
-        puts("Primero debes cargar un laberinto desde un archivo CSV.\n");
-        return;
-    }
+    printf("\nEscenario: %s\n", n->state.description);
+    printf("Tiempo restante: %d\n", gs->tiempoRestante);
 
-    Node* actual = &graph.nodes[0]; // Comienza desde el primer nodo
-    actual->state.remainingTime = 10;
-
-    if (actual->state.playerInventory == NULL)
-        actual->state.playerInventory = list_create();
+    printf("Inventario del jugador:\n");
+    if (list_size(gs->inventory) == 0)
+        puts("  (vacío)");
     else
-        list_clean(actual->state.playerInventory);
+        for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
+            printf(" - %s (valor %d, peso %d)\n", it->name, it->value, it->weight);
 
-    char option;
-    char reading[MAXOPTION];
-    
-    /*
-    printf("current: %p\n", actual);
-    printf("inv: %p, items: %p\n", actual->state.playerInventory, actual->state.availableItems);
-    */
+    printf("\nÍtems disponibles aquí:\n");
+    if (list_size(n->state.availableItems) == 0)
+        puts("  Ninguno");
+    else
+        for (Item* it = list_first(n->state.availableItems); it; it = list_next(n->state.availableItems))
+            printf(" - %s (valor %d, peso %d)\n", it->name, it->value, it->weight);
+}
 
-    while (1) {
-        limpiarPantalla();
-        puts("-------- Partida en Curso --------");
-        show_actual_state(actual);
-        showGameOptions();
-        option = readOption(reading, 5);
+// Moverse entre nodos del grafo
+void moverse(GameState* gs) {
+    Node* n = gs->currentNode;
 
-        switch (option) {
-            case '1':
-                puts("Recoger ítems aún no implementado.");
-                break;
+    const char* dirNames[] = {"Norte", "Este", "Sur", "Oeste"};
+    printf("Direcciones disponibles:\n");
+    for (int i = 0; i < 4; i++) {
+        if (n->adjacents[i]) {
+            printf("(%d) %s -> %s\n", i + 1, dirNames[i], n->adjacents[i]->state.name);
+        }
+    }
 
-            case '2':
-                puts("Descartar ítems aún no implementado.");
-                break;
+    char buf[MAXOPTION];
+    printf("Elige una dirección (1-4): ");
+    if (!fgets(buf, MAXOPTION, stdin)) {
+        puts("Error de lectura.");
+        return;
+    }
 
-            case '3':
-                move(&actual);
-                if (actual->state.remainingTime <= 0) {
-                    puts("\n¡Se acabó el tiempo! Has perdido.");
-                    return;
-                }
-                if (actual->state.esFinal) {
-                    puts("\n¡Has llegado al escenario final! ¡Felicidades!");
-                    // Puedes imprimir aquí los ítems del inventario y puntaje
-                    return;
-                }
-                break;
+    int dir = atoi(buf) - 1; // Convertimos 1-4 a índice 0-3
+    if (dir >= 0 && dir < 4 && n->adjacents[dir]) {
+        int pesoTotal = 0;
+        for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
+            pesoTotal += it->weight;
 
-            case '4': // Reiniciar partida
-                actual = &graph.nodes[0];
-                actual->state.remainingTime = 10;
-                list_clean(actual->state.playerInventory);
-                puts("Partida reiniciada.");
-                break;
+        int gasto = (pesoTotal + 1 + 9) / 10; // equivalente a ceil((peso+1)/10)
+        gs->currentNode    = n->adjacents[dir];
+        gs->tiempoRestante -= gasto;
 
-            case '5': // Salir
-                puts("Saliendo del juego...");
-                return;
+        printf("\nTe moviste. Gastaste %d. Tiempo restante: %d\n",
+               gasto, gs->tiempoRestante);
 
-            default:
-                puts("Opción inválida.");
+        if (gs->tiempoRestante <= 0) {
+            puts("\n¡Te quedaste sin tiempo! Has perdido.");
+            mostrar_puntaje_final(gs);
+            return;
         }
 
-        presioneTeclaParaContinuar();
+        if (gs->currentNode->state.esFinal) {
+            puts("\n¡Llegaste al final!");
+            mostrar_puntaje_final(gs);
+        }
+    } else {
+        puts("Dirección inválida.");
     }
 }
 
-void mostrar_escenarios(){
-    limpiarPantalla();
-    if (graph.numberOfNodes == 0) {
-        puts("Primero debes importar escenarios desde un archivo csv! :(");
+
+void recoger_items(GameState* gs) {
+    Node* n = gs->currentNode;
+    if (list_size(n->state.availableItems) == 0) {
+        puts("No hay ítems para recoger.");
         return;
     }
-    mostrar_grafo(graph);
+
+    int index = 0;
+    printf("Ítems disponibles:\n");
+    for (Item* it = list_first(n->state.availableItems); it; it = list_next(n->state.availableItems))
+        printf("(%d) %s (valor: %d, peso: %d)\n", index++, it->name, it->value, it->weight);
+
+    printf("Ingresa el índice del ítem a recoger: ");
+    char input[MAXOPTION];
+    fgets(input, MAXOPTION, stdin);
+    int choice = atoi(input);
+
+    list_first(n->state.availableItems);
+    for (int i = 0; i < choice; i++)
+        list_next(n->state.availableItems);
+
+    Item* it = list_current(n->state.availableItems);
+    if (it) {
+        list_pushBack(gs->inventory, it);
+        list_popCurrent(n->state.availableItems);
+        printf("Recogiste: %s\n", it->name);
+        gs->tiempoRestante -= 1;
+    } else {
+        puts("Índice inválido.");
+    }
+}
+
+void descartar_items(GameState* gs) {
+    if (list_size(gs->inventory) == 0) {
+        puts("No tienes ítems para descartar.");
+        return;
+    }
+
+    printf("Ítems en tu inventario:\n");
+    int index = 1;
+    for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
+        printf("(%d) %s (valor %d, peso %d)\n", index++, it->name, it->value, it->weight);
+
+    printf("Ingrese el número del ítem a descartar (0 para cancelar): ");
+    char buf[MAXOPTION];
+    if (!fgets(buf, MAXOPTION, stdin)) {
+        puts("Error de lectura.");
+        return;
+    }
+
+    int seleccion = atoi(buf);
+    if (seleccion == 0) return;
+
+    int actual = 1;
+    for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory), actual++) {
+        if (actual == seleccion) {
+            printf("Descartaste: %s\n", it->name);
+            list_popCurrent(gs->inventory); // Elimina el ítem actual
+            gs->tiempoRestante -= 1;
+            return;
+        }
+    }
+
+    puts("Selección inválida.");
+}
+
+void mostrar_puntaje_final(GameState* gs) {
+    int puntaje_total = 0;
+    printf("\n--- Inventario final ---\n");
+    for (Item* item = list_first(gs->inventory); item != NULL; item = list_next(gs->inventory)) {
+        printf(" - %s (valor: %d)\n", item->name, item->value);
+        puntaje_total += item->value;
+    }
+    printf("Puntaje total: %d\n", puntaje_total);
 }
 
 int main(){
@@ -258,13 +240,14 @@ int main(){
                 leer_escenarios();
                 break;
             case '2':
-                mostrar_escenarios();
+                mostrar_grafo();
                 break;
             case '3':
-                start_game();
+                iniciar_partida();
                 break;
             case '4':
-                puts("OPCION SALIR");
+                puts("Saliendo del juego...");
+                liberarJuego(&graph);
                 break;
             default:
                 puts("\nOpción inválida, intente nuevamente");
