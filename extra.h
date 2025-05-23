@@ -5,6 +5,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include "list.h"
+#include "grafo.h"
+
+#ifdef _WIN32
+#define CLEAR_CMD "cls"
+#else
+#define CLEAR_CMD "clear"
+#endif
 
 /**
  * Función para leer y parsear una línea de un archivo CSV en campos
@@ -45,5 +52,13 @@ List *split_string(const char *str, const char *delim);
 void limpiarPantalla();
 
 void presioneTeclaParaContinuar();
+
+void limpiarPantalla(void);
+
+void liberarEscenarios(Graph* g);
+
+void liberarListaItems(List* lista);
+
+void liberarJuego(Graph* g);
 
 #endif
