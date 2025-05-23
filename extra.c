@@ -1,5 +1,8 @@
 #include "extra.h"
-
+#include "grafo.h"
+#include "list.h"
+#include <ctype.h>
+#include <stdlib.h>
 
 #define MAX_LINE_LENGTH 4096
 #define MAX_FIELDS      128
