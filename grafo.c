@@ -5,12 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "game.h"
 
 Graph graph;
 
 void leer_escenarios() {
-    limpiarPantalla();
-    puts("----- Lectura de Escenarios Jugables -----");
     FILE *archivo = fopen("graphquest.csv", "r");
     if (archivo == NULL) {
         perror("Error al abrir el archivo");
@@ -44,7 +43,7 @@ void leer_escenarios() {
         // Crear lista de ítems
         node->state.availableItems = list_create();
         node->state.playerInventory = list_create(); // vacía por defecto
-        node->state.remainingTime = 0;
+        node->state.tiempoRestante = 0;
 
         // Parsear items
         List* items = split_string(campos[3], ";");
@@ -94,29 +93,22 @@ void leer_escenarios() {
     }
 
     fclose(archivo);
-    printf("Se cargaron %zu escenarios!!\n\n", contadorEscenarios);
+    printf("\nSe cargaron %zu escenarios!!\n", contadorEscenarios);
 }
 
 void mostrar_grafo() {
-    puts("-------- Escenarios Jugables --------");
     for (int i = 0; i < graph.numberOfNodes; i++) {
         Node* node = &graph.nodes[i];
-        puts("===================================================");
-        puts("===================================================");
-        printf("ID DEL ESCENARIO:%7d\n\n", i + 1);
-        printf("TÍTULO : '%s'\n", node->state.name);
-        printf("Descripción: '%s'\n\n", node->state.description);
+        printf("Nodo ID: %d\n", i + 1);
+        printf("Nombre: %s\n", node->state.name);
+        printf("  Descripción: %s\n", node->state.description);
 
-        if (list_size(node->state.availableItems) == 0) {
-            puts("No hay items en este escenario");
-        } else {
-            printf("\nLista de Ítems disponibles:\n");
-            for (Item* item = list_first(node->state.availableItems); item != NULL; item = list_next(node->state.availableItems)) {
-                printf("    - %s (%d pts, %d kg)\n", item->name, item->value, item->weight);
-            }
+        printf("  Ítems disponibles:\n");
+        for (Item* item = list_first(node->state.availableItems); item != NULL; item = list_next(node->state.availableItems)) {
+            printf("    - %s (%d pts, %d kg)\n", item->name, item->value, item->weight);
         }
 
-        printf("\nAdyacencias del Escenario:\n");
+        printf("  Adyacencias:\n");
         const char* direcciones[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
         for (int j = 0; j < 4; j++) {
             if (node->adjacents[j] != NULL) {
@@ -127,6 +119,8 @@ void mostrar_grafo() {
             }
         }
 
-        printf("\n¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
+        printf("  ¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
+        printf("------------------------------------\n");
     }
 }
+
