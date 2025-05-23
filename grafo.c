@@ -9,6 +9,8 @@
 Graph graph;
 
 void leer_escenarios() {
+    limpiarPantalla();
+    puts("----- Lectura de Escenarios Jugables -----");
     FILE *archivo = fopen("graphquest.csv", "r");
     if (archivo == NULL) {
         perror("Error al abrir el archivo");
@@ -92,15 +94,18 @@ void leer_escenarios() {
     }
 
     fclose(archivo);
-    printf("\nSe cargaron %zu escenarios!!\n", contadorEscenarios);
+    printf("Se cargaron %zu escenarios!!\n\n", contadorEscenarios);
 }
 
 void mostrar_grafo() {
+    puts("-------- Escenarios Jugables --------");
     for (int i = 0; i < graph.numberOfNodes; i++) {
         Node* node = &graph.nodes[i];
-        printf("Nodo ID: %d\n", i + 1);
-        printf("Nombre del Escenario: %s\n", node->state.name);
-        printf("\nDescripción: '%s'\n\n", node->state.description);
+        puts("===================================================");
+        puts("===================================================");
+        printf("ID DEL ESCENARIO:%7d\n\n", i + 1);
+        printf("TÍTULO : '%s'\n", node->state.name);
+        printf("Descripción: '%s'\n\n", node->state.description);
 
         if (list_size(node->state.availableItems) == 0) {
             puts("No hay items en este escenario");
@@ -122,7 +127,6 @@ void mostrar_grafo() {
             }
         }
 
-        printf("\n  ¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
-        printf("------------------------------------\n");
+        printf("\n¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
     }
 }
