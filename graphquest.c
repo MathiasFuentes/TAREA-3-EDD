@@ -47,7 +47,6 @@ void showPrincipalOptions(){
 }
 
 void showGameOptions(){
-    puts("-------- Partida en Curso --------\n");
     puts("------ Opciones Disponibles ------");
     puts("(1)   Recoger Ítem(s)");
     puts("(2)   Descartar Ítem(s)");
@@ -102,14 +101,14 @@ void show_actual_state(Node* current) {
         current->state.playerInventory = list_create(); // Solución de emergencia
     }
 
-    printf("\nEscenario actual:\n%s\n", current->state.description);
+    printf("\nEscenario actual: '%s'\n'%s'\n\n",current->state.name, current->state.description);
     printf("Tiempo restante: %d\n", current->state.remainingTime);
-    printf("Ítems disponibles:\n");
 
     if (list_size(current->state.availableItems) == 0) {
         puts("No hay ítems en este escenario.");
     }
     else {
+        printf("Ítems disponibles:\n");
         for (Item* it = list_first(current->state.availableItems); it != NULL; it = list_next(current->state.availableItems)) {
             printf("- %s (valor: %d, peso: %d)\n", it->name, it->value, it->weight);
         }
@@ -128,7 +127,7 @@ void move(Node** current) {
         }
     }
 
-    printf("Ingrese una dirección (0-3): ");
+    printf("Ingrese una dirección (1-4): ");
     char input[16];
     fgets(input, sizeof(input), stdin);
     int dir = atoi(input);
@@ -145,6 +144,7 @@ void move(Node** current) {
         int tiempoGastado = (pesoTotal + 1) / 10;
         if (tiempoGastado == 0) tiempoGastado = 1;
 
+        int tiempoAnterior = actual->state.remainingTime;
         *current = actual->adjacents[dir];
 
         if ((*current)->state.availableItems == NULL)
@@ -153,7 +153,7 @@ void move(Node** current) {
         if ((*current)->state.playerInventory == NULL)
             (*current)->state.playerInventory = list_create();
 
-        (*current)->state.remainingTime -= tiempoGastado;
+        (*current)->state.remainingTime = tiempoAnterior - tiempoGastado;
 
         printf("\nTe has movido a un nuevo escenario.\n");
         printf("Tiempo gastado: %d\n", tiempoGastado);
@@ -169,7 +169,8 @@ void move(Node** current) {
 void start_game() {
     limpiarPantalla();
     if (graph.numberOfNodes == 0) {
-        puts("Primero debes cargar el laberinto desde el CSV.");
+        puts("==== ADVERTENCIA ====");
+        puts("Primero debes cargar un laberinto desde un archivo CSV.\n");
         return;
     }
 
@@ -184,10 +185,14 @@ void start_game() {
     char option;
     char reading[MAXOPTION];
     
+    /*
     printf("current: %p\n", actual);
     printf("inv: %p, items: %p\n", actual->state.playerInventory, actual->state.availableItems);
+    */
 
     while (1) {
+        limpiarPantalla();
+        puts("-------- Partida en Curso --------");
         show_actual_state(actual);
         showGameOptions();
         option = readOption(reading, 5);
