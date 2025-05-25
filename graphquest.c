@@ -6,7 +6,7 @@
 
 #include "list.h"
 #include "extra.h"
-#include "grafo.h" // Asegúrate de que grafo.h incluya la definición completa de struct Graph y struct Node
+#include "grafo.h"
 #include "game.h"
 
 #define MAXOPTION 256
@@ -16,26 +16,17 @@
 #define MAXNODES 1000
 
 /*
-### **Opciones del Jugador**
-
-1. **Recoger Ítem(s)**
-    - El jugador puede seleccionar uno o más ítems del escenario para agregarlos a su inventario. Se descuenta 1 de tiempo.
-
-2. **Descartar Ítem(s)**
-    - El jugador puede eliminar ítems de su inventario para reducir peso y moverse más rápido. Se descuenta 1 de tiempo.
-
-3. **Avanzar en una Dirección**
-    - El jugador elige una dirección válida.
-    - Se actualiza el escenario actual, el inventario se conserva, y se descuenta el tiempo usado según el peso total transportado: T = (Peso total del inventario + 1) / 10
-    - Si se alcanza el escenario final, se muestran los elementos del inventario y el **puntaje final.**
-    - Si el **tiempo se agota**, se muestra un mensaje de derrota.
-
-4. **Reiniciar Partida**
-    - Se reinicia el juego desde el escenario inicial, con inventario vacío y tiempo completo.
-
-5. **Salir del Juego**
-    - Finaliza la partida y cierra la aplicación.
-*/
+ * Función: showPrincipalOptions
+ * -----------------------------
+ * Muestra el menú principal del juego "GraphQuest" en la consola.
+ * 
+ * Objetivo:
+ *  - Limpiar la pantalla y desplegar las opciones iniciales que el usuario puede seleccionar
+ *    para comenzar a interactuar con el programa.
+ * 
+ * Esta función no recibe parámetros ni retorna valores. Su única finalidad es la presentación
+ * visual del menú principal mediante impresión por consola.
+ */
 
 void showPrincipalOptions(){
     limpiarPantalla();
@@ -47,6 +38,19 @@ void showPrincipalOptions(){
     puts("(4)   Salir");
 }
 
+/*
+ * Función: showGameOptions
+ * ------------------------
+ * Muestra el menú de opciones disponibles durante una partida activa del juego "GraphQuest".
+ * 
+ * Objetivo:
+ *  - Limpiar la pantalla y presentar al jugador las acciones que puede realizar en su turno
+ *    dentro del juego.
+ * 
+ * Esta función no recibe parámetros ni retorna valores. Está diseñada para guiar al jugador
+ * mostrando el conjunto de comandos que puede ejecutar.
+ */
+
 void showGameOptions(){
     limpiarPantalla();
     puts("---------- GraphQuest ----------\n");
@@ -57,6 +61,29 @@ void showGameOptions(){
     puts("(4)   Reiniciar partida");
     puts("(5)   Salir del juego");
 }
+
+/*
+ * Función: readOption
+ * -------------------
+ * Solicita al usuario una opción numérica dentro de un rango válido, validando la entrada 
+ * para asegurar que sea un solo dígito numérico entre 1 y maxOpciones.
+ * 
+ * Parámetros:
+ *  - reading: Arreglo de caracteres donde se almacena la entrada del usuario.
+ *  - maxOpciones: Valor entero que indica el número máximo de opciones válidas (inclusive).
+ * 
+ * Retorno:
+ *  - Retorna el carácter correspondiente a la opción elegida por el usuario, si es válida.
+ * 
+ * Funcionamiento:
+ *  - Muestra un mensaje solicitando una opción dentro del rango [1-maxOpciones].
+ *  - Usa fgets para leer la entrada como cadena, verificando que no haya errores.
+ *  - Elimina el salto de línea final si está presente.
+ *  - Verifica que la entrada sea de un solo carácter y que sea un dígito.
+ *  - Convierte el carácter a un número entero y verifica si está dentro del rango permitido.
+ *  - Si la entrada es válida, retorna el carácter.
+ *  - Si no es válida, muestra un mensaje de error y repite el ciclo.
+ */
 
 char readOption(char reading[MAXOPTION], int maxOpciones) {
     while (1) {
@@ -83,6 +110,23 @@ char readOption(char reading[MAXOPTION], int maxOpciones) {
     }
 }
 
+/*
+ * Función: mostrar_estado_actual
+ * ------------------------------
+ * Muestra en pantalla el estado actual del jugador durante la partida.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameState que contiene la información del juego actual.
+ *
+ * Funcionalidad:
+ *  - Limpia la pantalla.
+ *  - Muestra la descripción del escenario actual y el tiempo restante.
+ *  - Imprime los ítems en el inventario del jugador, si los hay.
+ *  - Lista los ítems disponibles en el nodo actual, si existen.
+ *
+ * Esta función permite al jugador evaluar su situación actual antes de tomar decisiones.
+ */
+
 void mostrar_estado_actual(GameState* gs) {
     Node* n = gs->currentNode;
     limpiarPantalla();
@@ -104,7 +148,24 @@ void mostrar_estado_actual(GameState* gs) {
             printf(" - %s (valor %d, peso %d)\n", it->name, it->value, it->weight);
 }
 
-// Moverse entre nodos del grafo
+/*
+ * Función: moverse
+ * ----------------
+ * Permite al jugador desplazarse a un nodo adyacente en el grafo del juego.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameState con el estado actual del jugador.
+ *
+ * Funcionalidad:
+ *  - Muestra las direcciones disponibles desde el nodo actual.
+ *  - Lee la opción del usuario y valida la dirección elegida.
+ *  - Calcula el costo de movimiento en base al peso del inventario.
+ *  - Actualiza el nodo actual y el tiempo restante del jugador.
+ *  - Verifica si el jugador se quedó sin tiempo o llegó al nodo final.
+ *
+ * Si el jugador llega al nodo final o agota su tiempo, se muestra el puntaje final.
+ */
+
 void moverse(GameState* gs) {
     Node* n = gs->currentNode;
 
@@ -151,6 +212,22 @@ void moverse(GameState* gs) {
     }
 }
 
+/*
+ * Función: recoger_items
+ * ----------------------
+ * Permite al jugador recoger un ítem del escenario actual y añadirlo a su inventario.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameState con el estado actual del jugador.
+ *
+ * Funcionalidad:
+ *  - Muestra los ítems disponibles en el nodo actual.
+ *  - Solicita al usuario que seleccione un ítem por su índice.
+ *  - Transfiere el ítem al inventario del jugador y lo elimina del escenario.
+ *  - Resta 1 unidad al tiempo restante como penalización por recoger.
+ *
+ * Se maneja la entrada inválida en caso de índice fuera de rango.
+ */
 
 void recoger_items(GameState* gs) {
     Node* n = gs->currentNode;
@@ -183,6 +260,22 @@ void recoger_items(GameState* gs) {
         puts("Índice inválido.");
     }
 }
+
+/*
+ * Función: descartar_items
+ * ------------------------
+ * Permite al jugador eliminar un ítem de su inventario.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameState del jugador.
+ *
+ * Funcionalidad:
+ *  - Muestra los ítems actuales del inventario.
+ *  - Solicita al usuario el número del ítem a descartar.
+ *  - Elimina el ítem seleccionado y descuenta 1 unidad de tiempo restante.
+ *
+ * Si el jugador no tiene ítems o elige una opción inválida, se notifica.
+ */
 
 void descartar_items(GameState* gs) {
     if (list_size(gs->inventory) == 0) {
@@ -218,6 +311,19 @@ void descartar_items(GameState* gs) {
     puts("Selección inválida.");
 }
 
+/*
+ * Función: mostrar_puntaje_final
+ * ------------------------------
+ * Muestra los ítems finales del inventario del jugador y calcula su puntaje total.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameState del jugador.
+ *
+ * Funcionalidad:
+ *  - Recorre el inventario sumando el valor de cada ítem.
+ *  - Imprime los ítems y el puntaje total acumulado.
+ */
+
 void mostrar_puntaje_final(GameState* gs) {
     int puntaje_total = 0;
     printf("\n--- Inventario final ---\n");
@@ -227,6 +333,19 @@ void mostrar_puntaje_final(GameState* gs) {
     }
     printf("Puntaje total: %d\n", puntaje_total);
 }
+
+/*
+ * Función: mostrar_resultados_finales
+ * -----------------------------------
+ * Muestra los puntajes finales de ambos jugadores en modo multijugador.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameStateMultiplayer con los estados de ambos jugadores.
+ *
+ * Funcionalidad:
+ *  - Imprime el puntaje de cada jugador.
+ *  - Calcula y muestra el puntaje total colaborativo.
+ */
 
 void mostrar_resultados_finales(GameStateMultiplayer* gs) {
     int totalPuntaje = 0;
@@ -240,6 +359,18 @@ void mostrar_resultados_finales(GameStateMultiplayer* gs) {
     printf("\nPuntaje total colaborativo: %d\n", totalPuntaje);
 }
 
+/*
+ * Función: mostrar_estado_jugador_actual
+ * --------------------------------------
+ * Muestra información básica del turno actual en modo multijugador.
+ *
+ * Parámetros:
+ *  - gs: Puntero a la estructura GameStateMultiplayer.
+ *
+ * Funcionalidad:
+ *  - Imprime el turno actual, escenario y tiempo restante del jugador activo.
+ */
+
 void mostrar_estado_jugador_actual(GameStateMultiplayer* gs) {
     Player* actual = &gs->jugadores[gs->turnoActual];
     printf("\n== TURNO DEL JUGADOR %d ==\n", gs->turnoActual + 1);
@@ -247,6 +378,20 @@ void mostrar_estado_jugador_actual(GameStateMultiplayer* gs) {
     printf("Tiempo restante: %d\n", actual->tiempoRestante);
     // Puedes extender esto con el inventario, ítems disponibles, etc.
 }
+
+/*
+ * Función: seleccionar_modo_y_comenzar_partida
+ * --------------------------------------------
+ * Solicita al usuario que seleccione el modo de juego: un jugador o dos jugadores.
+ *
+ * Parámetros:
+ *  - grafo: Puntero a la estructura Graph que representa el laberinto del juego.
+ *
+ * Funcionalidad:
+ *  - Muestra el menú de selección de modo de juego.
+ *  - Llama a la función de inicio correspondiente según la elección del usuario.
+ *  - Si la opción ingresada es inválida, se muestra un mensaje de error.
+ */
 
 void seleccionar_modo_y_comenzar_partida(Graph* grafo) {
     limpiarPantalla();
@@ -268,6 +413,22 @@ void seleccionar_modo_y_comenzar_partida(Graph* grafo) {
         puts("Opción inválida.");
     }
 }
+
+/*
+ * Función: iniciar_partida_multijugador
+ * -------------------------------------
+ * Inicia una partida para dos jugadores en modo multijugador.
+ *
+ * Parámetros:
+ *  - grafo: Puntero a la estructura Graph que contiene el laberinto.
+ *
+ * Funcionalidad:
+ *  - Inicializa los estados de los dos jugadores.
+ *  - Ejecuta turnos alternados donde cada jugador puede realizar hasta dos acciones por turno.
+ *  - Las acciones posibles son: recoger ítems, descartar ítems, moverse o salir.
+ *  - Verifica condiciones de término (sin tiempo o llegada al nodo final).
+ *  - Al final, muestra los puntajes individuales y el total colaborativo.
+ */
 
 void iniciar_partida_multijugador(Graph* grafo) {
     GameStateMultiplayer gs;
@@ -345,6 +506,28 @@ void iniciar_partida_multijugador(Graph* grafo) {
 
     mostrar_resultados_finales(&gs);
 }
+
+/*
+ * Función: main
+ * -------------
+ * Función principal del programa. Controla el ciclo general del juego y el menú principal.
+ *
+ * Funcionalidad:
+ *  - Muestra un menú con las opciones principales del juego.
+ *  - Lee la opción seleccionada por el usuario.
+ *  - Ejecuta una acción según la opción:
+ *      - '1': Carga los escenarios desde archivo (función leer_escenarios).
+ *      - '2': Muestra el grafo del juego (función mostrar_grafo).
+ *      - '3': Inicia la partida en modo uno o dos jugadores (función seleccionar_modo_y_comenzar_partida).
+ *      - '4': Libera la memoria y termina el juego.
+ *      - Otra: Informa que la opción es inválida.
+ *  - El ciclo continúa hasta que el usuario elija salir ('4').
+ *
+ * Detalles adicionales:
+ *  - Utiliza `showPrincipalOptions` para mostrar el menú.
+ *  - Usa `readOption` para capturar la opción con validación de entrada.
+ *  - Llama a `presioneTeclaParaContinuar` al final de cada iteración para dar tiempo al usuario.
+ */
 
 int main(){
     char option;
