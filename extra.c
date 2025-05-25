@@ -1,11 +1,23 @@
-#include "extra.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "extra.h"
 #include "list.h"
 #include "grafo.h"
 #include "game.h"
+
+#ifdef _MSC_VER
+#define strdup _strdup
+#endif
+
+#ifndef HAVE_STRDUP
+char* strdup(const char* s) {
+    size_t len = strlen(s) + 1;
+    char* copy = malloc(len);
+    if (copy) memcpy(copy, s, len);
+    return copy;
+}
+#endif
 
 #define MAX_LINE_LENGTH 1024
 #define MAX_FIELDS 100
@@ -24,7 +36,7 @@ char **leer_linea_csv(FILE *archivo, char separador) {
         if (*ptr == '"') {
             ptr++;
             campos[i++] = ptr;
-            while (*ptr && (*ptr != '"' || *(ptr + 1) != separador && *(ptr + 1) != '\n')) ptr++;
+            while (*ptr && (*ptr != '"' || ((*(ptr + 1) != separador) && (*(ptr + 1) != '\n')))) ptr++;
             *ptr = '\0';
             ptr++;
             if (*ptr == separador) ptr++;
@@ -65,7 +77,7 @@ void presioneTeclaParaContinuar() {
     getchar();
 }
 
-// Recorre cada nodo del grafo y libera sus listas e items
+
 void liberarEscenarios(Graph* g) {
     if (g == NULL) return;
 
@@ -74,12 +86,10 @@ void liberarEscenarios(Graph* g) {
         if (nodo != NULL) {
             if (nodo->adjacents) free(nodo->adjacents);
             if (nodo->state.availableItems) liberarListaItems(nodo->state.availableItems);
-            free(nodo);
         }
     }
 
     free(g->nodes);
-    free(g);
 }
 
 void liberarListaItems(List* lista) {
