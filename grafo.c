@@ -98,19 +98,33 @@ void leer_escenarios() {
 }
 
 void mostrar_grafo() {
-    for (int i = 0; i < graph.numberOfNodes; i++) {
-        Node* node = &graph.nodes[i];
-        printf("Nodo ID: %d\n", i + 1);
-        printf("Nombre: %s\n", node->state.name);
-        printf("  Descripción: %s\n", node->state.description);
+    limpiarPantalla();
 
-        printf("  Ítems disponibles:\n");
-        for (Item* item = list_first(node->state.availableItems); item != NULL; item = list_next(node->state.availableItems)) {
-            printf("    - %s (%d pts, %d kg)\n", item->name, item->value, item->weight);
+    if (graph.numberOfNodes == 0){
+        puts("====- Advertencia -====");
+        puts("Debes incluir el archivo .csv con los escenarios!");
+        return;
+    }
+
+    const char* direcciones[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
+    
+    for (int i = 0; i < graph.numberOfNodes; i++) {
+        if (i == 0) { puts("==============================================================="); }
+        Node* node = &graph.nodes[i];
+        printf("Nodo        : %d\n", i + 1);
+        printf("Nombre      : '%s'\n", node->state.name);
+        printf("\nDescripción:\n'%s'\n", node->state.description);
+
+        if (list_size(node->state.availableItems) == 0){
+            puts("\nNo hay ítems en este escenario.");
+        } else {
+            printf("\nLista de Ítems disponibles:\n");
+            for (Item* item = list_first(node->state.availableItems); item != NULL; item = list_next(node->state.availableItems)) {
+                printf("    - %s (%d pts, %d kg)\n", item->name, item->value, item->weight);
+            }
         }
 
-        printf("  Adyacencias:\n");
-        const char* direcciones[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
+        printf("\nLista de Nodos Adyacentes:\n");
         for (int j = 0; j < 4; j++) {
             if (node->adjacents[j] != NULL) {
                 int id_adyacente = (int)(node->adjacents[j] - graph.nodes) + 1; // calcular ID relativo
@@ -120,8 +134,8 @@ void mostrar_grafo() {
             }
         }
 
-        printf("  ¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
-        printf("------------------------------------\n");
+        printf("\n¿Es final?: %s\n", node->state.esFinal ? "Sí" : "No");
+        puts("===============================================================");
     }
 }
 
