@@ -6,7 +6,7 @@
 
 #include "list.h"
 #include "extra.h"
-#include "grafo.h"
+#include "grafo.h" // Asegúrate de que grafo.h incluya la definición completa de struct Graph y struct Node
 #include "game.h"
 
 #define MAXOPTION 256
@@ -228,8 +228,125 @@ void mostrar_puntaje_final(GameState* gs) {
     printf("Puntaje total: %d\n", puntaje_total);
 }
 
+void mostrar_resultados_finales(GameStateMultiplayer* gs) {
+    int totalPuntaje = 0;
+    for (int i = 0; i < 2; i++) {
+        Player* p = &gs->jugadores[i];
+        printf("\nJugador %d:\n", i + 1);
+        printf("Puntaje: %d\n", p->puntaje);
+        // Mostrar ítems
+        totalPuntaje += p->puntaje;
+    }
+    printf("\nPuntaje total colaborativo: %d\n", totalPuntaje);
+}
+
+void mostrar_estado_jugador_actual(GameStateMultiplayer* gs) {
+    Player* actual = &gs->jugadores[gs->turnoActual];
+    printf("\n== TURNO DEL JUGADOR %d ==\n", gs->turnoActual + 1);
+    printf("Escenario actual: %s\n", actual->currentNode->state.name);
+    printf("Tiempo restante: %d\n", actual->tiempoRestante);
+    // Puedes extender esto con el inventario, ítems disponibles, etc.
+}
+
+void seleccionar_modo_y_comenzar_partida(Graph* grafo) {
+    limpiarPantalla();
+    puts("¿Cuántos jugadores jugarán?");
+    puts("(1) Un jugador");
+    puts("(2) Dos jugadores");
+
+    char buf[MAXOPTION];
+    fgets(buf, MAXOPTION, stdin);
+    int eleccion = atoi(buf);
+
+    if (eleccion == 1) {
+        iniciar_partida();  // Tu función actual de 1 jugador
+    }
+    else if (eleccion == 2) {
+        iniciar_partida_multijugador(grafo);
+    }
+    else {
+        puts("Opción inválida.");
+    }
+}
+
+void iniciar_partida_multijugador(Graph* grafo) {
+    GameStateMultiplayer gs;
+    gs.grafo = grafo;
+    gs.turnoActual = 0;
+    for (int i = 0; i < 2; i++) {
+        gs.jugadores[i].currentNode = grafo->start;
+        gs.jugadores[i].inventory = list_create();
+        gs.jugadores[i].tiempoRestante = 10;
+        gs.jugadores[i].puntaje = 0;
+    }
+    while (true) {
+        Player* p = &gs.jugadores[gs.turnoActual];
+        if (p->tiempoRestante <= 0 || p->currentNode->state.esFinal) {
+            bool todosTerminaron = true;
+            for (int i = 0; i < 2; i++) {
+                if (gs.jugadores[i].tiempoRestante > 0 && !gs.jugadores[i].currentNode->state.esFinal) {
+                    todosTerminaron = false;
+                    break;
+                }
+            }
+            if (todosTerminaron) break;
+            else {
+                gs.turnoActual = 1 - gs.turnoActual;
+                continue;
+            }
+        }
+        mostrar_estado_jugador_actual(&gs);
+        showGameOptions();
+        int acciones = 0;
+        while (acciones < 2) {
+            char buf[10];
+            printf("Elige una acción: ");
+            if (!fgets(buf, sizeof(buf), stdin)) {
+                puts("Error de lectura.");
+                continue;
+            }
+            char opcion = buf[0];
+
+            GameState temp;
+            temp.inventory = p->inventory;
+            temp.tiempoRestante = p->tiempoRestante;
+            temp.currentNode = p->currentNode;
+
+            switch (opcion) {
+                case '1': recoger_items(&temp); break;
+                case '2': descartar_items(&temp); break;
+                case '3': moverse(&temp); break;
+                case '4': return; // salir
+                default: puts("Opción inválida."); continue;
+            }
+
+            p->inventory = temp.inventory;
+            p->tiempoRestante = temp.tiempoRestante;
+            p->currentNode = temp.currentNode;
+
+            acciones++;
+
+            if (acciones < 2) {
+                printf("¿Deseas hacer otra acción? (s/n): ");
+                if (!fgets(buf, sizeof(buf), stdin)) break;
+                if (tolower(buf[0]) != 's') break;
+            }
+        }
+
+        gs.turnoActual = 1 - gs.turnoActual;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        Player* p = &gs.jugadores[i];
+        p->puntaje = 0;
+        for (Item* it = list_first(p->inventory); it; it = list_next(p->inventory))
+            p->puntaje += it->value;
+    }
+
+    mostrar_resultados_finales(&gs);
+}
+
 int main(){
-    bool Flag = true;
     char option;
     do {
         showPrincipalOptions();
@@ -243,7 +360,7 @@ int main(){
                 mostrar_grafo();
                 break;
             case '3':
-                iniciar_partida();
+                seleccionar_modo_y_comenzar_partida(&graph);
                 break;
             case '4':
                 puts("Saliendo del juego...");
