@@ -153,7 +153,7 @@ void mostrar_grafo() {
     const char* direcciones[] = {"Arriba", "Abajo", "Izquierda", "Derecha"};
     
     for (int i = 0; i < graph.numberOfNodes; i++) {
-        if (i == 0) { puts("==============================================================="); }
+        if (i == 0) { puts("================ Mostrar Escenarios del Grafo ================");  }
         Node* node = &graph.nodes[i];
         printf("Nodo        : %d\n", i + 1);
         printf("Nombre      : '%s'\n", node->state.name);
