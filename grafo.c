@@ -10,22 +10,51 @@
 
 Graph graph;
 
+/**
+ * leer_escenarios
+ * ----------------
+ * Carga los datos de los escenarios desde un archivo CSV indicado por el usuario
+ * y los almacena en la estructura global 'graph'. Cada fila del archivo representa
+ * un nodo del grafo con sus propiedades: nombre, descripción, ítems disponibles,
+ * adyacencias y si es un nodo final.
+ *
+ * Funcionamiento:
+ *  - Solicita al usuario el nombre del archivo CSV a cargar.
+ *  - Abre el archivo y lee los encabezados.
+ *  - Realiza una primera pasada para crear los nodos con sus atributos.
+ *  - En una segunda pasada, establece las adyacencias entre nodos (arriba, abajo, etc).
+ *  - Informa cuántos escenarios fueron cargados correctamente.
+ *
+ * Consideraciones:
+ *  - Si el archivo no existe o no puede abrirse, muestra un error y no altera el grafo.
+ *  - Expande dinámicamente la memoria si hay más nodos que la capacidad inicial.
+ *  - Usa listas para representar los ítems en cada nodo.
+ */
+
 void leer_escenarios() {
-    FILE *archivo = fopen("graphquest.csv", "r");
+    limpiarPantalla();
+    puts("======== Leer Escenarios ========");
+    char nombreArchivo[100];
+    printf("Ingrese el nombre del archivo CSV (ej: graphquest.csv): ");
+    fgets(nombreArchivo, sizeof(nombreArchivo), stdin);
+    nombreArchivo[strcspn(nombreArchivo, "\n")] = 0;
+
+    FILE *archivo = fopen(nombreArchivo, "r");
     if (archivo == NULL) {
-        perror("Error al abrir el archivo");
+        printf("No se pudo abrir el archivo \"%s\".\n", nombreArchivo);
+        perror("Error");
         return;
     }
 
     size_t contadorEscenarios = 0;
     char **campos;
-    int capacidad = 100; // Asumimos un máximo inicial
+    int capacidad = 100; 
     graph.nodes = malloc(sizeof(Node) * capacidad);
     graph.numberOfNodes = 0;
 
-    campos = leer_linea_csv(archivo, ','); // Leer encabezados
+    campos = leer_linea_csv(archivo, ','); 
 
-    // Primero: leer y crear nodos
+    // Primera pasada: leer nodos
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
         if (graph.numberOfNodes >= capacidad) {
             capacidad *= 2;
@@ -33,20 +62,18 @@ void leer_escenarios() {
         }
 
         int id = atoi(campos[0]);
-        Node *node = &graph.nodes[id - 1]; // ID empieza en 1
+        Node *node = &graph.nodes[id - 1];
         graph.numberOfNodes++;
         contadorEscenarios++;
 
-        // Asignar nombre y descripción
+        
         strncpy(node->state.name, campos[1], MAXNAME);
         strncpy(node->state.description, campos[2], MAXDESC);
-
-        // Crear lista de ítems
         node->state.availableItems = list_create();
-        node->state.playerInventory = list_create(); // vacía por defecto
+        node->state.playerInventory = list_create();
         node->state.tiempoRestante = 0;
 
-        // Parsear items
+        
         List* items = split_string(campos[3], ";");
         for (char *item = list_first(items); item != NULL; item = list_next(items)) {
             List *values = split_string(item, ",");
@@ -58,26 +85,24 @@ void leer_escenarios() {
             newItem->weight = atoi(list_next(values));
 
             list_pushBack(node->state.availableItems, newItem);
-
             list_clean(values);
             free(values);
         }
         list_clean(items);
         free(items);
 
-        // Marcar si es final
+        
         char *es_final = campos[8];
         for (int i = 0; es_final[i]; i++) es_final[i] = tolower(es_final[i]);
         node->state.esFinal = (strncmp(es_final, "sí", 2) == 0 || strncmp(es_final, "si", 2) == 0);
 
-        // Inicializar adyacencias
+        
         node->adjacents = calloc(4, sizeof(Node*));
     }
 
-    // Segundo: abrir de nuevo el archivo para setear adyacencias por ID
+    // Segunda pasada: establecer adyacencias
     rewind(archivo);
-    leer_linea_csv(archivo, ','); // saltar encabezado otra vez
-
+    leer_linea_csv(archivo, ',');
     int idx = 0;
     while ((campos = leer_linea_csv(archivo, ',')) != NULL) {
         Node *node = &graph.nodes[idx++];
@@ -94,8 +119,27 @@ void leer_escenarios() {
     }
 
     fclose(archivo);
-    printf("\nSe cargaron %zu escenarios!!\n", contadorEscenarios);
+    printf("\nSe cargaron %zu escenarios desde \"%s\" correctamente.\n", contadorEscenarios, nombreArchivo);
 }
+
+/**
+ * mostrar_grafo
+ * --------------
+ * Muestra por consola todos los nodos cargados en el grafo, junto con sus atributos.
+ * Esta función es útil para depurar, verificar que el archivo se cargó correctamente,
+ * o simplemente para mostrar al jugador los escenarios disponibles.
+ *
+ * Para cada nodo, se imprime:
+ *  - ID y nombre del nodo.
+ *  - Descripción del escenario.
+ *  - Lista de ítems disponibles (nombre, valor en puntos, peso en kg).
+ *  - Las adyacencias del nodo en cada dirección cardinal.
+ *  - Si el nodo representa un escenario final.
+ *
+ * Consideraciones:
+ *  - Si no se han cargado nodos previamente, muestra una advertencia.
+ *  - Usa nombres legibles y un formato limpio para facilitar la lectura.
+ */
 
 void mostrar_grafo() {
     limpiarPantalla();
