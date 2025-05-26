@@ -2,6 +2,7 @@
 #ifndef GAME_H
 #define GAME_H
 
+#define MAXOPTION 256
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -29,6 +30,8 @@ typedef struct {
     int turnoActual;
 } GameStateMultiplayer;
 
+char readOption(char reading[MAXOPTION], int maxOpciones);
+
 void iniciar_partida(Graph* grafo);
 
 void iniciar_partida_multijugador(Graph* grafo);
@@ -50,5 +53,11 @@ void mostrar_resultados_finales(GameStateMultiplayer* gs);
 void mostrar_estado_jugador_actual(GameStateMultiplayer* gs);
 
 void sincronizar_items(Graph* grafo1, Graph* grafo2, GameState* jugador1, GameState* jugador2);
+
+void showPrincipalOptions();
+
+void showGameOptions();
+
+
 
 #endif // GAME_H
