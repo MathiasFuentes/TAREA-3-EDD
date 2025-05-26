@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
 #include <ctype.h>
 
 Graph graph;
@@ -33,6 +34,7 @@ Graph graph;
 
 void leer_escenarios() {
     limpiarPantalla();
+    if (graph.nodes != NULL) liberarEscenarios(&graph);
     puts("======== Leer Escenarios ========");
     char nombreArchivo[100];
     printf("Ingrese el nombre del archivo CSV (ej: graphquest.csv): ");
@@ -80,7 +82,8 @@ void leer_escenarios() {
             if (values == NULL || list_size(values) < 3) continue;
 
             Item *newItem = malloc(sizeof(Item));
-            strncpy(newItem->name, list_first(values), MAXITEMNAME);
+            strncpy(newItem->name, list_first(values), MAXITEMNAME - 1);
+            newItem->name[MAXITEMNAME - 1] = '\0';
             newItem->value = atoi(list_next(values));
             newItem->weight = atoi(list_next(values));
 
@@ -116,6 +119,13 @@ void leer_escenarios() {
         if (abajo != -1)     node->adjacents[1] = &graph.nodes[abajo - 1];
         if (izquierda != -1) node->adjacents[2] = &graph.nodes[izquierda - 1];
         if (derecha != -1)   node->adjacents[3] = &graph.nodes[derecha - 1];
+    }
+
+    // Después de cargar todos los nodos y sus adyacencias:
+    if (graph.numberOfNodes > 0) {
+        graph.start = &graph.nodes[0];
+    } else {
+        graph.start = NULL;
     }
 
     fclose(archivo);
@@ -182,4 +192,97 @@ void mostrar_grafo() {
         puts("===============================================================");
     }
 }
+
+/**
+ * copiar_grafo
+ * -------------
+ * Crea una copia profunda del grafo actual, replicando todos los nodos y sus atributos.
+ * Esta función es útil para reiniciar la partida desde cero sin alterar el grafo original,
+ * permitiendo mantener intactos los escenarios iniciales y sus ítems.
+ *
+ * Para cada nodo copiado, se duplica:
+ *  - Su ID, nombre, descripción, y estado final.
+ *  - La lista de ítems disponibles, con copias independientes de cada ítem.
+ *  - Se inicializa un inventario vacío.
+ *  - Las conexiones (adyacencias) se actualizan tras copiar todos los nodos.
+ *
+ * Consideraciones:
+ *  - El puntero `start` del nuevo grafo apunta al nodo equivalente al original.
+ *  - No se copian los jugadores ni estados de partida; solo la estructura base.
+ *  - Es responsabilidad del usuario liberar la copia con `liberarEscenarios` al terminar.
+ */
+
+Graph* copiar_grafo(const Graph* original) {
+    if (!original) return NULL;
+
+    Graph* copia = malloc(sizeof(Graph));
+    if (!copia) return NULL;
+
+    copia->numberOfNodes = original->numberOfNodes;
+    copia->capacidad = original->capacidad;
+
+    // Reserva el arreglo de nodos
+    if (copia->capacidad <= 0) {
+        copia->capacidad = copia->numberOfNodes > 0 ? copia->numberOfNodes : 1;
+    }
+    copia->nodes = malloc(sizeof(Node) * copia->capacidad);
+    if (!copia->nodes) {
+        free(copia);
+        return NULL;
+    }
+
+    // Copiar cada nodo uno a uno
+    for (int i = 0; i < copia->numberOfNodes; i++) {
+        // Copiar estructura Node (incluye State)
+        copia->nodes[i] = original->nodes[i];
+
+        // 1) Copiar cadenas (opcional, si no están garantizadas independientes)
+        // Normalmente no hace falta porque memcpy copia los arrays estáticos
+
+        // 2) Crear nuevas listas vacías para availableItems y playerInventory
+        copia->nodes[i].state.availableItems = list_create();
+        copia->nodes[i].state.playerInventory = list_create();
+
+        // 3) Copiar items de availableItems (lista de Item*)
+        for (Item* it = list_first(original->nodes[i].state.availableItems);
+             it != NULL;
+             it = list_next(original->nodes[i].state.availableItems)) {
+            Item* nuevoItem = malloc(sizeof(Item));
+            if (nuevoItem) {
+                *nuevoItem = *it;  // copia el contenido de Item
+                list_pushBack(copia->nodes[i].state.availableItems, nuevoItem);
+            }
+        }
+
+        // No copiamos playerInventory (usualmente vacío al inicio)
+        // Si quieres copiar inventarios, hazlo igual que arriba
+
+        // 4) Reservar espacio para punteros de adyacentes, iniciar en NULL
+        copia->nodes[i].adjacents = calloc(4, sizeof(Node*));
+    }
+
+    // 5) Calcular el nodo start dentro de la copia
+    if (original->start) {
+        ptrdiff_t offset = original->start - original->nodes; // índice relativo del nodo start
+        copia->start = &copia->nodes[offset];
+    } else {
+        copia->start = NULL;
+    }
+
+    // 6) Asignar punteros adjacentes en copia, apuntando a nodos de la copia
+    for (int i = 0; i < copia->numberOfNodes; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (original->nodes[i].adjacents[j]) {
+                ptrdiff_t adj_offset = original->nodes[i].adjacents[j] - original->nodes;
+                copia->nodes[i].adjacents[j] = &copia->nodes[adj_offset];
+            } else {
+                copia->nodes[i].adjacents[j] = NULL;
+            }
+        }
+    }
+
+    return copia;
+}
+
+
 

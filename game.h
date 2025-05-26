@@ -4,7 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-
+#include <stdbool.h>
 
 typedef struct List List;
 typedef struct Node Node;
@@ -29,14 +29,14 @@ typedef struct {
     int turnoActual;
 } GameStateMultiplayer;
 
-void iniciar_partida(void);
+void iniciar_partida(Graph* grafo);
 void mostrar_puntaje_final(GameState* gs);
-void mostrar_estado_actual(GameState* gs);
+void mostrar_estado_actual(GameState* gs, int indicador);
 void showGameOptions(void);
 char readOption(char* buf, int len);
-void recoger_items(GameState* gs);
-void descartar_items(GameState* gs);
-void moverse(GameState* gs);
+void recoger_items(GameState* gs, bool esMultijugador, Node* otroJugadorNode);
+void descartar_items(GameState* gs, int indicador);
+bool moverse(GameState* gs);
 void iniciar_partida_multijugador(Graph* grafo);
 
 

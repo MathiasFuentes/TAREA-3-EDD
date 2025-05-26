@@ -79,28 +79,39 @@ void presioneTeclaParaContinuar() {
 
 
 void liberarEscenarios(Graph* g) {
-    if (g == NULL) return;
+    if (g == NULL || g->nodes == NULL) return;
 
     for (int i = 0; i < g->numberOfNodes; i++) {
         Node* nodo = &g->nodes[i];
-        if (nodo != NULL) {
-            if (nodo->adjacents) free(nodo->adjacents);
-            if (nodo->state.availableItems) liberarListaItems(nodo->state.availableItems);
+        if (nodo == NULL) continue;
+
+        if (nodo->adjacents != NULL) {
+            free(nodo->adjacents);
+            nodo->adjacents = NULL;
+        }
+
+        if (nodo->state.availableItems != NULL) {
+            liberarListaItems(nodo->state.availableItems);
+            nodo->state.availableItems = NULL;
+        }
+
+        if (nodo->state.playerInventory != NULL) {
+            liberarListaItems(nodo->state.playerInventory);
+            nodo->state.playerInventory = NULL;
         }
     }
 
     free(g->nodes);
+    g->nodes = NULL;
+    g->numberOfNodes = 0;
+    g->capacidad = 0;
+    g->start = NULL;
 }
+
+
 
 void liberarListaItems(List* lista) {
     if (!lista) return;
-
-    void* item = list_first(lista);
-    while (item != NULL) {
-        free(item);
-        item = list_next(lista);
-    }
-
     list_destroy(lista);
 }
 

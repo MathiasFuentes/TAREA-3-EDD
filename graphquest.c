@@ -52,8 +52,6 @@ void showPrincipalOptions(){
  */
 
 void showGameOptions(){
-    limpiarPantalla();
-    puts("---------- GraphQuest ----------\n");
     puts("------ Opciones Disponibles ------");
     puts("(1)   Recoger Ítem(s)");
     puts("(2)   Descartar Ítem(s)");
@@ -127,25 +125,34 @@ char readOption(char reading[MAXOPTION], int maxOpciones) {
  * Esta función permite al jugador evaluar su situación actual antes de tomar decisiones.
  */
 
-void mostrar_estado_actual(GameState* gs) {
+void mostrar_estado_actual(GameState* gs, int indicador) {
     Node* n = gs->currentNode;
-    limpiarPantalla();
-    printf("\nEscenario: %s\n", n->state.description);
+    if (indicador == 1){
+        limpiarPantalla();
+        puts("=======- Partida en Curso -=======");
+    }
+    printf("Escenario: %s\n", n->state.name);
+    printf("\nDescripción %s\n", n->state.description);
     printf("Tiempo restante: %d\n", gs->tiempoRestante);
 
-    printf("Inventario del jugador:\n");
-    if (list_size(gs->inventory) == 0)
-        puts("  (vacío)");
-    else
-        for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
+    if (list_size(gs->inventory) == 0) puts("\nTu inventario está vacío.");
+    else    {
+        puts("\nInventario:");
+        for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory)){
             printf(" - %s (valor %d, peso %d)\n", it->name, it->value, it->weight);
+        }
+        // printf("\n");
+    }
 
-    printf("\nÍtems disponibles aquí:\n");
-    if (list_size(n->state.availableItems) == 0)
-        puts("  Ninguno");
-    else
-        for (Item* it = list_first(n->state.availableItems); it; it = list_next(n->state.availableItems))
+    if (list_size(n->state.availableItems) == 0) puts("\nNo hay ítems disponibles aquí.\n");
+    else    {
+        printf("\nÍtems disponibles aquí:\n");
+        for (Item* it = list_first(n->state.availableItems); it; it = list_next(n->state.availableItems)){
             printf(" - %s (valor %d, peso %d)\n", it->name, it->value, it->weight);
+        }
+        printf("\n");
+        
+    }
 }
 
 /*
@@ -166,11 +173,14 @@ void mostrar_estado_actual(GameState* gs) {
  * Si el jugador llega al nodo final o agota su tiempo, se muestra el puntaje final.
  */
 
-void moverse(GameState* gs) {
+// Devuelve true si la partida terminó, false si continúa
+bool moverse(GameState* gs) {
     Node* n = gs->currentNode;
-
+    limpiarPantalla();
+    puts("======- Moverse en una dirección -======");
     const char* dirNames[] = {"Norte", "Este", "Sur", "Oeste"};
-    printf("Direcciones disponibles:\n");
+
+    printf("\nDirecciones disponibles:\n");
     for (int i = 0; i < 4; i++) {
         if (n->adjacents[i]) {
             printf("(%d) %s -> %s\n", i + 1, dirNames[i], n->adjacents[i]->state.name);
@@ -178,137 +188,40 @@ void moverse(GameState* gs) {
     }
 
     char buf[MAXOPTION];
-    printf("Elige una dirección (1-4): ");
+    printf("\nElige una dirección (1-4): ");
     if (!fgets(buf, MAXOPTION, stdin)) {
         puts("Error de lectura.");
-        return;
+        return false;
     }
 
-    int dir = atoi(buf) - 1; // Convertimos 1-4 a índice 0-3
+    int dir = atoi(buf) - 1;
     if (dir >= 0 && dir < 4 && n->adjacents[dir]) {
         int pesoTotal = 0;
         for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
             pesoTotal += it->weight;
 
-        int gasto = (pesoTotal + 1 + 9) / 10; // equivalente a ceil((peso+1)/10)
-        gs->currentNode    = n->adjacents[dir];
+        int gasto = (pesoTotal + 1 + 9) / 10;
+        gs->currentNode = n->adjacents[dir];
         gs->tiempoRestante -= gasto;
 
-        printf("\nTe moviste. Gastaste %d. Tiempo restante: %d\n",
+        printf("\nTe moviste. Gastaste %d de Tiempo. Tiempo restante: %d\n",
                gasto, gs->tiempoRestante);
 
         if (gs->tiempoRestante <= 0) {
             puts("\n¡Te quedaste sin tiempo! Has perdido.");
             mostrar_puntaje_final(gs);
-            return;
+            return true; // Partida terminada
         }
 
         if (gs->currentNode->state.esFinal) {
             puts("\n¡Llegaste al final!");
             mostrar_puntaje_final(gs);
+            return true; // Partida terminada
         }
     } else {
         puts("Dirección inválida.");
     }
-}
-
-/*
- * Función: recoger_items
- * ----------------------
- * Permite al jugador recoger un ítem del escenario actual y añadirlo a su inventario.
- *
- * Parámetros:
- *  - gs: Puntero a la estructura GameState con el estado actual del jugador.
- *
- * Funcionalidad:
- *  - Muestra los ítems disponibles en el nodo actual.
- *  - Solicita al usuario que seleccione un ítem por su índice.
- *  - Transfiere el ítem al inventario del jugador y lo elimina del escenario.
- *  - Resta 1 unidad al tiempo restante como penalización por recoger.
- *
- * Se maneja la entrada inválida en caso de índice fuera de rango.
- */
-
-void recoger_items(GameState* gs) {
-    Node* n = gs->currentNode;
-    if (list_size(n->state.availableItems) == 0) {
-        puts("No hay ítems para recoger.");
-        return;
-    }
-
-    int index = 0;
-    printf("Ítems disponibles:\n");
-    for (Item* it = list_first(n->state.availableItems); it; it = list_next(n->state.availableItems))
-        printf("(%d) %s (valor: %d, peso: %d)\n", index++, it->name, it->value, it->weight);
-
-    printf("Ingresa el índice del ítem a recoger: ");
-    char input[MAXOPTION];
-    fgets(input, MAXOPTION, stdin);
-    int choice = atoi(input);
-
-    list_first(n->state.availableItems);
-    for (int i = 0; i < choice; i++)
-        list_next(n->state.availableItems);
-
-    Item* it = list_current(n->state.availableItems);
-    if (it) {
-        list_pushBack(gs->inventory, it);
-        list_popCurrent(n->state.availableItems);
-        printf("Recogiste: %s\n", it->name);
-        gs->tiempoRestante -= 1;
-    } else {
-        puts("Índice inválido.");
-    }
-}
-
-/*
- * Función: descartar_items
- * ------------------------
- * Permite al jugador eliminar un ítem de su inventario.
- *
- * Parámetros:
- *  - gs: Puntero a la estructura GameState del jugador.
- *
- * Funcionalidad:
- *  - Muestra los ítems actuales del inventario.
- *  - Solicita al usuario el número del ítem a descartar.
- *  - Elimina el ítem seleccionado y descuenta 1 unidad de tiempo restante.
- *
- * Si el jugador no tiene ítems o elige una opción inválida, se notifica.
- */
-
-void descartar_items(GameState* gs) {
-    if (list_size(gs->inventory) == 0) {
-        puts("No tienes ítems para descartar.");
-        return;
-    }
-
-    printf("Ítems en tu inventario:\n");
-    int index = 1;
-    for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory))
-        printf("(%d) %s (valor %d, peso %d)\n", index++, it->name, it->value, it->weight);
-
-    printf("Ingrese el número del ítem a descartar (0 para cancelar): ");
-    char buf[MAXOPTION];
-    if (!fgets(buf, MAXOPTION, stdin)) {
-        puts("Error de lectura.");
-        return;
-    }
-
-    int seleccion = atoi(buf);
-    if (seleccion == 0) return;
-
-    int actual = 1;
-    for (Item* it = list_first(gs->inventory); it; it = list_next(gs->inventory), actual++) {
-        if (actual == seleccion) {
-            printf("Descartaste: %s\n", it->name);
-            list_popCurrent(gs->inventory); // Elimina el ítem actual
-            gs->tiempoRestante -= 1;
-            return;
-        }
-    }
-
-    puts("Selección inválida.");
+    return false;
 }
 
 /*
@@ -379,40 +292,117 @@ void mostrar_estado_jugador_actual(GameStateMultiplayer* gs) {
     // Puedes extender esto con el inventario, ítems disponibles, etc.
 }
 
-/*
- * Función: seleccionar_modo_y_comenzar_partida
- * --------------------------------------------
- * Solicita al usuario que seleccione el modo de juego: un jugador o dos jugadores.
+/**
+ * seleccionar_modo_y_comenzar_partida
+ * -----------------------------------
+ * Permite al usuario elegir entre modo de un jugador o multijugador.
+ * En el modo de un jugador, se realiza una copia profunda del grafo original
+ * (`graph`) a una copia temporal (`graphCpy`) que se usará en la partida.
+ *
+ * Esto permite reiniciar la partida con el estado original del laberinto intacto.
  *
  * Parámetros:
- *  - grafo: Puntero a la estructura Graph que representa el laberinto del juego.
+ *  - grafo: puntero al grafo original previamente cargado con escenarios.
  *
- * Funcionalidad:
- *  - Muestra el menú de selección de modo de juego.
- *  - Llama a la función de inicio correspondiente según la elección del usuario.
- *  - Si la opción ingresada es inválida, se muestra un mensaje de error.
+ * Consideraciones:
+ *  - Si no se han cargado escenarios, no se podrá iniciar la partida.
+ *  - Cada vez que se inicia o reinicia una partida, se vuelve a copiar el grafo.
  */
-
-void seleccionar_modo_y_comenzar_partida(Graph* grafo) {
+void seleccionar_modo_y_comenzar_partida(Graph** grafo) {
     limpiarPantalla();
-    puts("¿Cuántos jugadores jugarán?");
-    puts("(1) Un jugador");
-    puts("(2) Dos jugadores");
+    puts("======- Iniciar Partida -======");
+    puts("Selecciona el número de jugadores:");
+    puts("(1)   Un jugador");
+    puts("(2)   Dos jugadores");
 
     char buf[MAXOPTION];
-    fgets(buf, MAXOPTION, stdin);
-    int eleccion = atoi(buf);
+    char eleccion = readOption(buf, 2);
 
-    if (eleccion == 1) {
-        iniciar_partida();  // Tu función actual de 1 jugador
+    if (graph.numberOfNodes == 0) {
+        puts("Primero debes cargar el laberinto.");
+        return;
     }
-    else if (eleccion == 2) {
-        iniciar_partida_multijugador(grafo);
+
+    if (eleccion == '1') {
+        if (*grafo) {
+            liberarJuego(*grafo);
+            free(*grafo);
+            *grafo = NULL;
+        }
+
+        *grafo = copiar_grafo(&graph);
+        if (!*grafo) {
+            puts("Error al crear la copia del grafo.");
+            return;
+        }
+        iniciar_partida(*grafo);
     }
-    else {
-        puts("Opción inválida.");
+    else if (eleccion == '2') {
+        iniciar_partida_multijugador(&graph);
     }
 }
+
+
+void sincronizar_items(Graph* grafo1, Graph* grafo2, GameState* jugador1, GameState* jugador2){
+    // Eliminar del grafo2 los ítems que el jugador1 ya recogió
+    for (int i = 0; i < grafo2->numberOfNodes; i++) {
+        List* itemsNodo = grafo2->nodes[i].state.availableItems;
+        if (!itemsNodo) continue;
+
+        Item* itemNodo = (Item*) list_first(itemsNodo);
+        while (itemNodo) {
+            bool encontrado = false;
+
+            // Buscar si este ítem está en el inventario del jugador1
+            Item* itemInv = (Item*) list_first(jugador1->inventory);
+            while (itemInv) {
+                if (strcmp(itemNodo->name, itemInv->name) == 0) {
+                    encontrado = true;
+                    break;
+                }
+                itemInv = (Item*) list_next(jugador1->inventory);
+            }
+
+            if (encontrado) {
+                list_popCurrent(itemsNodo);
+                itemNodo = (Item*) list_current(itemsNodo);  // Ya está en la posición correcta
+            } else {
+                itemNodo = (Item*) list_next(itemsNodo);
+            }
+        }
+    }
+
+    // Eliminar del grafo1 los ítems que el jugador2 ya recogió
+    for (int i = 0; i < grafo1->numberOfNodes; i++) {
+        List* itemsNodo = grafo1->nodes[i].state.availableItems;
+        if (!itemsNodo) continue;
+
+        Item* itemNodo = (Item*) list_first(itemsNodo);
+        while (itemNodo) {
+            bool encontrado = false;
+
+            // Buscar si este ítem está en el inventario del jugador2
+            Item* itemInv = (Item*) list_first(jugador2->inventory);
+            while (itemInv) {
+                if (strcmp(itemNodo->name, itemInv->name) == 0) {
+                    encontrado = true;
+                    break;
+                }
+                itemInv = (Item*) list_next(jugador2->inventory);
+            }
+
+            if (encontrado) {
+                list_popCurrent(itemsNodo);
+                itemNodo = (Item*) list_current(itemsNodo);
+            } else {
+                itemNodo = (Item*) list_next(itemsNodo);
+            }
+        }
+    }
+}
+
+
+
 
 /*
  * Función: iniciar_partida_multijugador
@@ -431,80 +421,115 @@ void seleccionar_modo_y_comenzar_partida(Graph* grafo) {
  */
 
 void iniciar_partida_multijugador(Graph* grafo) {
-    GameStateMultiplayer gs;
-    gs.grafo = grafo;
-    gs.turnoActual = 0;
-    for (int i = 0; i < 2; i++) {
-        gs.jugadores[i].currentNode = grafo->start;
-        gs.jugadores[i].inventory = list_create();
-        gs.jugadores[i].tiempoRestante = 10;
-        gs.jugadores[i].puntaje = 0;
+    // Crear una copia del grafo para cada jugador
+    Graph* grafoJugador1 = copiar_grafo(grafo);
+    Graph* grafoJugador2 = copiar_grafo(grafo);
+    
+    if (!grafoJugador1 || !grafoJugador2) {
+        puts("Error al crear copias del grafo para multijugador");
+        if (grafoJugador1) liberarJuego(grafoJugador1);
+        if (grafoJugador2) liberarJuego(grafoJugador2);
+        return;
     }
-    while (true) {
-        Player* p = &gs.jugadores[gs.turnoActual];
-        if (p->tiempoRestante <= 0 || p->currentNode->state.esFinal) {
-            bool todosTerminaron = true;
-            for (int i = 0; i < 2; i++) {
-                if (gs.jugadores[i].tiempoRestante > 0 && !gs.jugadores[i].currentNode->state.esFinal) {
-                    todosTerminaron = false;
-                    break;
-                }
-            }
-            if (todosTerminaron) break;
-            else {
-                gs.turnoActual = 1 - gs.turnoActual;
-                continue;
-            }
-        }
-        mostrar_estado_jugador_actual(&gs);
-        showGameOptions();
-        int acciones = 0;
-        while (acciones < 2) {
-            char buf[10];
-            printf("Elige una acción: ");
-            if (!fgets(buf, sizeof(buf), stdin)) {
-                puts("Error de lectura.");
-                continue;
-            }
-            char opcion = buf[0];
 
-            GameState temp;
-            temp.inventory = p->inventory;
-            temp.tiempoRestante = p->tiempoRestante;
-            temp.currentNode = p->currentNode;
+    GameState gs1, gs2;
+    gs1.currentNode = grafoJugador1->start;
+    gs1.inventory = list_create();
+    gs1.tiempoRestante = 10;
+    
+    gs2.currentNode = grafoJugador2->start;
+    gs2.inventory = list_create();
+    gs2.tiempoRestante = 10;
+
+    int jugadorActual = 0; // 0 para jugador 1, 1 para jugador 2
+    bool partidaTerminada = false;
+
+    while (!partidaTerminada) {
+        GameState* gsActual = (jugadorActual == 0) ? &gs1 : &gs2;
+        bool turnoTerminado = false;
+
+        // Mostrar pantalla de turno
+        limpiarPantalla();
+        printf("====== TURNO DEL JUGADOR %d ======\n", jugadorActual + 1);
+        mostrar_estado_actual(gsActual, 0); // 0 para multijugador
+        
+        while (!turnoTerminado && !partidaTerminada) {
+            showGameOptions();
+            char buf[MAXOPTION];
+            char opcion = readOption(buf, 5);
 
             switch (opcion) {
-                case '1': recoger_items(&temp); break;
-                case '2': descartar_items(&temp); break;
-                case '3': moverse(&temp); break;
-                case '4': return; // salir
-                default: puts("Opción inválida."); continue;
+                case '1': 
+                    recoger_items(gsActual, true, (jugadorActual == 0) ? gs2.currentNode : gs1.currentNode);
+                    sincronizar_items(grafoJugador1, grafoJugador2, &gs1, &gs2);
+                    break;
+                case '2': {
+                    // Descartar ítem
+                    limpiarPantalla();
+                    printf("====== TURNO DEL JUGADOR %d ======\n", jugadorActual + 1);
+                    descartar_items(gsActual, 0); // 0 para multijugador
+                    presioneTeclaParaContinuar();
+                    break;
+                }
+                case '3': {
+                    // Moverse
+                    bool movimientoTerminoPartida = moverse(gsActual);
+                    if (movimientoTerminoPartida) {
+                        partidaTerminada = true;
+                    }
+                    turnoTerminado = true;
+                    break;
+                }
+                case '4': 
+                    // Reiniciar partida
+                    liberarJuego(grafoJugador1);
+                    liberarJuego(grafoJugador2);
+                    iniciar_partida_multijugador(grafo);
+                    return;
+                case '5': 
+                    // Salir
+                    partidaTerminada = true;
+                    turnoTerminado = true;
+                    break;
             }
 
-            p->inventory = temp.inventory;
-            p->tiempoRestante = temp.tiempoRestante;
-            p->currentNode = temp.currentNode;
+            // Verificar si terminó el turno
+            if (gsActual->tiempoRestante <= 0 || gsActual->currentNode->state.esFinal) {
+                turnoTerminado = true;
+                partidaTerminada = (gs1.tiempoRestante <= 0 || gs1.currentNode->state.esFinal) &&
+                                  (gs2.tiempoRestante <= 0 || gs2.currentNode->state.esFinal);
+            }
 
-            acciones++;
-
-            if (acciones < 2) {
-                printf("¿Deseas hacer otra acción? (s/n): ");
-                if (!fgets(buf, sizeof(buf), stdin)) break;
-                if (tolower(buf[0]) != 's') break;
+            // Mostrar estado actualizado
+            if (!turnoTerminado && !partidaTerminada) {
+                limpiarPantalla();
+                printf("====== TURNO DEL JUGADOR %d ======\n", jugadorActual + 1);
+                mostrar_estado_actual(gsActual, 0);
             }
         }
 
-        gs.turnoActual = 1 - gs.turnoActual;
+        // Cambiar jugador
+        if (!partidaTerminada) {
+            jugadorActual = 1 - jugadorActual;
+        }
     }
 
-    for (int i = 0; i < 2; i++) {
-        Player* p = &gs.jugadores[i];
-        p->puntaje = 0;
-        for (Item* it = list_first(p->inventory); it; it = list_next(p->inventory))
-            p->puntaje += it->value;
-    }
-
-    mostrar_resultados_finales(&gs);
+    // Resultados finales
+    limpiarPantalla();
+    puts("====== RESULTADOS FINALES ======\n");
+    
+    puts("JUGADOR 1:");
+    mostrar_puntaje_final(&gs1);
+    printf("\n");
+    
+    puts("JUGADOR 2:");
+    mostrar_puntaje_final(&gs2);
+    
+    // Liberar recursos
+    liberarJuego(grafoJugador1);
+    liberarJuego(grafoJugador2);
+    free(grafoJugador1);
+    free(grafoJugador2);
 }
 
 /*
@@ -530,6 +555,13 @@ void iniciar_partida_multijugador(Graph* grafo) {
  */
 
 int main(){
+    graph.nodes = NULL;
+    graph.numberOfNodes = 0;
+    graph.capacidad = 0;
+    graph.start = NULL;
+
+    Graph* graphCpy = NULL;
+
     char option;
     do {
         showPrincipalOptions();
@@ -543,7 +575,7 @@ int main(){
                 mostrar_grafo();
                 break;
             case '3':
-                seleccionar_modo_y_comenzar_partida(&graph);
+                seleccionar_modo_y_comenzar_partida(&graphCpy);
                 break;
             case '4':
                 puts("Saliendo del juego...");

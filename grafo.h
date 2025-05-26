@@ -17,7 +17,6 @@ typedef struct {
     int     value;              // Valor del ítem en puntos (relevante para el puntaje del jugador)
 } Item;
 
-
 typedef struct State {
     char    name[MAXNAME];         // Nombre del escenario (ej: "Bosque encantado")
     char    description[MAXDESC];  // Descripción narrativa del escenario (se muestra al jugador)
@@ -29,12 +28,10 @@ typedef struct State {
     bool    esFinal;               // Marca si este escenario es un nodo final del juego (true = sí, false = no)
 } State;
 
-
 typedef struct Node {
     State   state;              // Estado del nodo: incluye descripción, ítems, si es final, etc.
     struct  Node** adjacents;   // Puntero a arreglo de 4 punteros a nodos adyacentes (arriba, abajo, izquierda, derecha)
 } Node;
-
 
 typedef struct Graph {
     Node*   nodes;              // Arreglo dinámico de nodos (escenarios del juego)
@@ -49,6 +46,10 @@ void leer_escenarios();
 // Función para mostrar los escenarios del archivo leído
 void mostrar_grafo();
 
+// Función que devuelve un puntero a una copia del grafo original recibido por la función.
+Graph* copiar_grafo(const Graph* original);
+
+// Grafo global para el manejo de los datos.
 extern Graph graph;
 
 #endif
