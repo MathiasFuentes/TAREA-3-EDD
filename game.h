@@ -30,14 +30,25 @@ typedef struct {
 } GameStateMultiplayer;
 
 void iniciar_partida(Graph* grafo);
-void mostrar_puntaje_final(GameState* gs);
-void mostrar_estado_actual(GameState* gs, int indicador);
-void showGameOptions(void);
-char readOption(char* buf, int len);
-void recoger_items(GameState* gs, bool esMultijugador, Node* otroJugadorNode);
-void descartar_items(GameState* gs, int indicador);
-bool moverse(GameState* gs);
+
 void iniciar_partida_multijugador(Graph* grafo);
 
+void recoger_items(GameState* gs, bool esMultijugador, Node* otroJugadorNode);
+
+void descartar_items(GameState* gs, int indicador);
+
+void mostrar_puntaje_final(GameState* gs);
+
+void mostrar_estado_actual(GameState* gs, int indicador);
+
+bool moverse(GameState* gs);
+
+void iniciar_partida_multijugador(Graph* grafo);
+
+void mostrar_resultados_finales(GameStateMultiplayer* gs);
+
+void mostrar_estado_jugador_actual(GameStateMultiplayer* gs);
+
+void sincronizar_items(Graph* grafo1, Graph* grafo2, GameState* jugador1, GameState* jugador2);
 
 #endif // GAME_H
