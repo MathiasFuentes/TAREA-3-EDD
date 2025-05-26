@@ -30,6 +30,7 @@
  *  - Si no se han cargado escenarios, no se podrá iniciar la partida.
  *  - Cada vez que se inicia o reinicia una partida, se vuelve a copiar el grafo.
  */
+
 void seleccionar_modo_y_comenzar_partida(Graph** grafo) {
     limpiarPantalla();
     puts("======- Iniciar Partida -======");

@@ -150,8 +150,9 @@ void iniciar_partida(Graph* grafo) {
             case '2': descartar_items(&gs, 1); break;
             case '3': partidaTerminada = moverse(&gs); break;
             case '4': 
-                // Reiniciar
-                liberarJuego(grafo);
+                // Reiniciar sin liberar el grafo, para mantener ítems recogidos
+                puts("\n--- Reiniciando la partida... ---");
+                presioneTeclaParaContinuar();
                 iniciar_partida(grafo);
                 return;
             case '5': 
@@ -264,12 +265,15 @@ void iniciar_partida_multijugador(Graph* grafo) {
                     turnoTerminado = true;
                     break;
                 }
+                
                 case '4': 
-                    // Reiniciar partida
+                    puts("\n--- Reiniciando la partida multijugador... ---");
+                    presioneTeclaParaContinuar();
                     liberarJuego(grafoJugador1);
                     liberarJuego(grafoJugador2);
                     iniciar_partida_multijugador(grafo);
                     return;
+
                 case '5': 
                     // Salir
                     partidaTerminada = true;
